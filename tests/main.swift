@@ -16,9 +16,9 @@ assert(dayDelta(to: day(2026, 1, 1, 23), from: day(2026, 1, 1, 0), calendar: cal
 // across US DST spring-forward (2026-03-08) -> still a clean 2-day count
 assert(dayDelta(to: day(2026, 3, 9), from: day(2026, 3, 7), calendar: cal) == 2)
 
-// deltaText: magnitude + tense
-assert(deltaText(5) == ("5", "days left"))
-assert(deltaText(-3) == ("3", "days ago"))
-assert(deltaText(0) == ("0", "today"))
+// deltaText: future counts down, today/past counts up as a day-together number
+assert(deltaText(5) == ("5", "days left"))      // future
+assert(deltaText(0) == ("1", "days together"))  // started today -> day 1
+assert(deltaText(-3) == ("4", "days together")) // 3 days ago -> day 4
 
 print("all DayMath tests passed")

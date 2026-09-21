@@ -10,9 +10,11 @@ func dayDelta(to target: Date, from now: Date = Date(), calendar: Calendar = .cu
     return calendar.dateComponents([.day], from: a, to: b).day ?? 0
 }
 
-/// Big number (always the magnitude) + a subtitle carrying tense.
+/// Big number + subtitle.
+/// Future date → countdown ("N" / "days left").
+/// Today or past → day-together counter: the start day is day 1, so a date
+/// that is `k` days in the past shows day `k + 1` ("N" / "days together").
 func deltaText(_ delta: Int) -> (number: String, subtitle: String) {
     if delta > 0 { return ("\(delta)", "days left") }
-    if delta < 0 { return ("\(-delta)", "days ago") }
-    return ("0", "today")
+    return ("\(-delta + 1)", "days together")
 }
