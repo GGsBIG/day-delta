@@ -11,8 +11,11 @@ widget.
 - Track multiple dated events in a list.
 - For each event, show the day delta: countdown if the date is in the future,
   count-up if it is in the past. Direction is automatic, not a stored setting.
-- Add events to a Home Screen widget; the user picks which event each widget
-  instance shows.
+- A configurable Home Screen widget: each widget instance is set up by the
+  user directly (enter a title + pick a date in the widget's long-press
+  configuration). The widget is self-contained and does not read the app's
+  event list — this avoids needing an App Group (which requires a paid Apple
+  Developer account). App list and widget are configured independently.
 - Pure black background, large monospaced numbers, title + number only (no
   color coding, no emoji).
 - Run on the user's own iPhone via free Apple ID signing.
@@ -27,24 +30,29 @@ widget.
 
 ## Architecture
 
-One Xcode project, two targets sharing an **App Group**:
+One Xcode project, two independent targets (no App Group):
 
-1. **DayDelta** (iOS app, SwiftUI) — event list, add / edit / delete.
+1. **DayDelta** (iOS app, SwiftUI) — event list, add / edit / delete. Stores
+   its list in its own standard `UserDefaults`.
 2. **DayDeltaWidget** (Widget Extension, WidgetKit + SwiftUI + AppIntents) —
-   Home Screen widget, small + medium.
+   Home Screen widget, small + medium. Self-configured: the user enters a
+   title + date in the widget's configuration; those values are stored by the
+   system per widget instance. The widget does not read app data.
 
-App Group (`group.com.<team>.daydelta`) is the shared container. It is the
-only supported way for the widget to read the app's data.
+> ponytail: dropping the App Group removes the shared container, the
+> `EntityQuery`, and the paid-account requirement. Cost: a widget event is
+> entered separately from the app list (no sync). Accepted tradeoff for a free
+> personal-team build.
 
 ### Shared code
 
 A small shared Swift file compiled into **both** targets (via target
-membership):
+membership) — pure functions only, no storage:
 
-- `Event` model
-- `EventStore` (load/save)
 - `dayDelta(...)` computation
-- Formatting helper (delta → display string)
+- `deltaText(...)` / subtitle formatting helper
+
+`Event` model and `EventStore` live in the **app target only**.
 
 ## Data Model
 
@@ -63,15 +71,15 @@ Direction is **computed**, never stored:
 
 ## Storage
 
-- JSON-encoded `[Event]` stored in the App Group's `UserDefaults`
-  (`UserDefaults(suiteName:)`) under one key.
+- App target only: JSON-encoded `[Event]` stored in `UserDefaults.standard`
+  under one key.
 - `EventStore` provides `load() -> [Event]` and `save([Event])`.
-- After any mutation in the app, call
-  `WidgetCenter.shared.reloadAllTimelines()` so widgets refresh immediately.
+- The widget stores nothing here; its configuration lives in the AppIntent
+  values the system persists per widget instance.
 
-> ponytail: JSON in shared UserDefaults, not CoreData/SwiftData. A flat list of
-> {title, date} needs nothing more; the widget reads the same suite. Revisit if
-> the list grows to hundreds of entries or needs queries.
+> ponytail: JSON in standard UserDefaults, not CoreData/SwiftData. A flat list
+> of {title, date} needs nothing more. Revisit if the list grows to hundreds of
+> entries or needs queries.
 
 ## Day Computation (the logic that gets a test)
 
@@ -118,25 +126,30 @@ Styling: `.preferredColorScheme(.dark)`, black backgrounds, `.monospaced()` /
 
 ## UI — Widget
 
-- **Configurable** via `AppIntentConfiguration`. A `SelectEventIntent`
-  (AppIntent) exposes an `EventEntity` parameter; an `EntityQuery` lists the
-  user's events (read from the same App Group store) so long-pressing the
-  widget lets the user pick which event it shows.
+- **Configurable** via `AppIntentConfiguration`. A `WidgetConfigIntent`
+  (AppIntent) exposes two parameters entered directly by the user in the
+  long-press configuration UI:
+  - `title: String` — event name
+  - `date: Date` — target date
+  No `EntityQuery`, no shared store.
 - **Families:** `.systemSmall`, `.systemMedium`.
 - **Content:** black background, large monospaced delta number, small
   monospaced title + subtitle. Same look as the app rows.
 - **Timeline:** one entry now; refresh policy `.after(next midnight)` so the
   number is recomputed once per day. Deltas change at most once per day, so no
   finer cadence is needed.
-- **Fallback:** if the configured event was deleted (or none chosen), show the
-  nearest upcoming event, or a "No event" placeholder.
+- **Fallback:** if the user hasn't configured a date yet, show a "Set a date"
+  placeholder.
 
 ## Build / Run
 
 - Switch active toolchain to full Xcode:
   `sudo xcode-select -s /Applications/Xcode.app`.
-- Configure App Group + signing (free Apple ID / personal team) on both
-  targets. Bundle IDs share the team prefix.
+- Project generated from a declarative `project.yml` via **XcodeGen** (avoids
+  hand-editing the `.pbxproj`; reproducible two-target setup).
+- Signing: free Apple ID / personal team on both targets. Bundle IDs share the
+  team prefix (`com.<you>.daydelta`, `com.<you>.daydelta.widget`). No App Group
+  capability needed.
 - Build to the connected iPhone; trust the developer cert on-device once.
 
 ## Testing
@@ -149,5 +162,6 @@ Styling: `.preferredColorScheme(.dark)`, black backgrounds, `.monospaced()` /
 
 - Free Apple ID signing: personal-team provisioning expires after 7 days and
   caps active App IDs; fine for personal use, noted for the user.
-- App Group entitlement must be enabled on both targets or the widget reads
-  empty data — a common first-run failure to watch for.
+- Widget events are configured independently from the app list (no sync) — a
+  deliberate consequence of dropping the App Group. If the user later wants the
+  widget to pick from app events, that requires a paid account + App Group.
