@@ -1,6 +1,6 @@
 name: DayDelta
 options:
-  bundleIdPrefix: com.daydelta
+  bundleIdPrefix: com.tcsxft.daydelta
   deploymentTarget:
     iOS: "17.0"
 settings:
@@ -20,7 +20,7 @@ targets:
       - DayDelta
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.daydelta.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.tcsxft.daydelta.app
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: DayDelta
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
@@ -40,6 +40,6 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.daydelta.app.widget
+        PRODUCT_BUNDLE_IDENTIFIER: com.tcsxft.daydelta.app.widget
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_CFBundleDisplayName: DayDelta
