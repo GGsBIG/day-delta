@@ -21,4 +21,22 @@ assert(deltaText(5) == ("5", "days left"))      // future
 assert(deltaText(0) == ("1", "days together"))  // started today -> day 1
 assert(deltaText(-3) == ("4", "days together")) // 3 days ago -> day 4
 
+// nextYearlyOccurrence: roll to next year only if this year's date already passed
+func ymd(_ d: Date) -> (Int, Int, Int) {
+    (cal.component(.year, from: d), cal.component(.month, from: d), cal.component(.day, from: d))
+}
+assert(ymd(nextYearlyOccurrence(of: day(2020, 3, 10), from: day(2026, 6, 15), calendar: cal)) == (2027, 3, 10))
+assert(ymd(nextYearlyOccurrence(of: day(2020, 12, 25), from: day(2026, 6, 15), calendar: cal)) == (2026, 12, 25))
+
+// nextMilestone: next multiple of 100 or 365, whichever comes first; nil for count-down
+assert(nextMilestone(dayCount: 76)! == (100, 24))
+assert(nextMilestone(dayCount: 100)! == (200, 100))
+assert(nextMilestone(dayCount: 350)! == (365, 15))
+assert(nextMilestone(dayCount: 0) == nil)
+assert(nextMilestone(dayCount: -3) == nil)
+
+// dateLabel: fixed format with weekday (2025-09-28 is a Sunday)
+let enPOSIX = Locale(identifier: "en_US_POSIX")
+assert(dateLabel(day(2025, 9, 28), calendar: cal, locale: enPOSIX) == "2025/09/28 (Sun)")
+
 print("all DayMath tests passed")
