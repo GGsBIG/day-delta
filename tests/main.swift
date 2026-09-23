@@ -49,4 +49,9 @@ assert(nextMilestone(dayCount: -3) == nil)
 let enPOSIX = Locale(identifier: "en_US_POSIX")
 assert(dateLabel(day(2025, 9, 28), calendar: cal, locale: enPOSIX) == "2025/09/28 (Sun)")
 
+// notifyDate: N days before target at 09:00
+let fire = notifyDate(target: day(2026, 6, 15), daysBefore: 3, calendar: cal)
+assert(ymd(fire) == (2026, 6, 12))
+assert(cal.component(.hour, from: fire) == 9 && cal.component(.minute, from: fire) == 0)
+
 print("all DayMath tests passed")

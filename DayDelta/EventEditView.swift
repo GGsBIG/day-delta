@@ -11,6 +11,7 @@ struct EventEditView: View {
     @State private var recurrence: Recurrence
     @State private var icon: String?
     @State private var notify: Bool
+    @State private var notifyDaysBefore: Int
 
     init(event: Event?, onSave: @escaping (Event) -> Void) {
         self.event = event
@@ -21,6 +22,7 @@ struct EventEditView: View {
         _recurrence = State(initialValue: event?.recurrence ?? .none)
         _icon = State(initialValue: event?.icon)
         _notify = State(initialValue: event?.notify ?? false)
+        _notifyDaysBefore = State(initialValue: event?.notifyDaysBefore ?? 0)
     }
 
     var body: some View {
@@ -45,6 +47,14 @@ struct EventEditView: View {
                         Text("Yearly").tag(Recurrence.yearly)
                     }
                     Toggle("Notify at 9am", isOn: $notify)
+                    if notify {
+                        Picker("Remind", selection: $notifyDaysBefore) {
+                            Text("On the day").tag(0)
+                            Text("1 day before").tag(1)
+                            Text("3 days before").tag(3)
+                            Text("7 days before").tag(7)
+                        }
+                    }
                 }
             }
             .font(.system(.body, design: .monospaced))
@@ -66,6 +76,7 @@ struct EventEditView: View {
                         e.recurrence = recurrence
                         e.icon = icon
                         e.notify = notify
+                        e.notifyDaysBefore = notify ? notifyDaysBefore : 0
                         onSave(e)
                         dismiss()
                     }

@@ -84,6 +84,14 @@ func nextMilestone(dayCount: Int) -> (target: Int, daysAway: Int)? {
     return (target, target - dayCount)
 }
 
+/// When a reminder should fire: `daysBefore` days before `target`, at `hour`:00.
+func notifyDate(target: Date, daysBefore: Int, hour: Int = 9,
+                calendar: Calendar = .current) -> Date {
+    let day = calendar.date(byAdding: .day, value: -daysBefore,
+                            to: calendar.startOfDay(for: target)) ?? target
+    return calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day) ?? day
+}
+
 /// A fixed, sortable date label with weekday, e.g. "2025/09/28 (Sun)".
 func dateLabel(_ date: Date, calendar: Calendar = .current, locale: Locale = .current) -> String {
     let f = DateFormatter()

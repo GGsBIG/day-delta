@@ -21,24 +21,33 @@ enum Notifications {
             content.sound = .default
 
             let trigger: UNCalendarNotificationTrigger
-            switch event.recurrence {
-            case .none:
-                var dc = calendar.dateComponents([.year, .month, .day], from: event.targetDate)
-                dc.hour = 9; dc.minute = 0
-                guard let fire = calendar.date(from: dc), fire > Date() else { continue }
+            if event.notifyDaysBefore > 0 {
+                // Lead time: one concrete fire, re-scheduled when the app foregrounds.
+                let fire = notifyDate(target: event.effectiveTarget(calendar: calendar),
+                                      daysBefore: event.notifyDaysBefore, calendar: calendar)
+                guard fire > Date() else { continue }
+                let dc = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fire)
                 trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
-            case .yearly:
-                var dc = calendar.dateComponents([.month, .day], from: event.targetDate)
-                dc.hour = 9; dc.minute = 0
-                trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
-            case .monthly:
-                var dc = calendar.dateComponents([.day], from: event.targetDate)
-                dc.hour = 9; dc.minute = 0
-                trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
-            case .weekly:
-                var dc = calendar.dateComponents([.weekday], from: event.targetDate)
-                dc.hour = 9; dc.minute = 0
-                trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+            } else {
+                switch event.recurrence {
+                case .none:
+                    var dc = calendar.dateComponents([.year, .month, .day], from: event.targetDate)
+                    dc.hour = 9; dc.minute = 0
+                    guard let fire = calendar.date(from: dc), fire > Date() else { continue }
+                    trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
+                case .yearly:
+                    var dc = calendar.dateComponents([.month, .day], from: event.targetDate)
+                    dc.hour = 9; dc.minute = 0
+                    trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+                case .monthly:
+                    var dc = calendar.dateComponents([.day], from: event.targetDate)
+                    dc.hour = 9; dc.minute = 0
+                    trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+                case .weekly:
+                    var dc = calendar.dateComponents([.weekday], from: event.targetDate)
+                    dc.hour = 9; dc.minute = 0
+                    trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+                }
             }
 
             center.add(UNNotificationRequest(identifier: event.id.uuidString,

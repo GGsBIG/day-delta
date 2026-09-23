@@ -8,11 +8,13 @@ struct Event: Codable, Identifiable, Hashable {
     var recurrence: Recurrence = .none
     var icon: String? = nil
     var notify: Bool = false
+    var notifyDaysBefore: Int = 0
     var pinned: Bool = false
 
     init(id: UUID = UUID(), title: String, targetDate: Date,
          mode: CountMode = .auto, recurrence: Recurrence = .none,
-         icon: String? = nil, notify: Bool = false, pinned: Bool = false) {
+         icon: String? = nil, notify: Bool = false,
+         notifyDaysBefore: Int = 0, pinned: Bool = false) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -20,11 +22,12 @@ struct Event: Codable, Identifiable, Hashable {
         self.recurrence = recurrence
         self.icon = icon
         self.notify = notify
+        self.notifyDaysBefore = notifyDaysBefore
         self.pinned = pinned
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, targetDate, mode, recurrence, icon, notify, pinned
+        case id, title, targetDate, mode, recurrence, icon, notify, notifyDaysBefore, pinned
         case repeatsYearly // legacy, decode-only
     }
 
@@ -39,6 +42,7 @@ struct Event: Codable, Identifiable, Hashable {
         try c.encode(recurrence, forKey: .recurrence)
         try c.encodeIfPresent(icon, forKey: .icon)
         try c.encode(notify, forKey: .notify)
+        try c.encode(notifyDaysBefore, forKey: .notifyDaysBefore)
         try c.encode(pinned, forKey: .pinned)
     }
 
@@ -53,6 +57,7 @@ struct Event: Codable, Identifiable, Hashable {
         mode = try c.decodeIfPresent(CountMode.self, forKey: .mode) ?? .auto
         icon = try c.decodeIfPresent(String.self, forKey: .icon)
         notify = try c.decodeIfPresent(Bool.self, forKey: .notify) ?? false
+        notifyDaysBefore = try c.decodeIfPresent(Int.self, forKey: .notifyDaysBefore) ?? 0
         pinned = try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
         if let r = try c.decodeIfPresent(Recurrence.self, forKey: .recurrence) {
             recurrence = r

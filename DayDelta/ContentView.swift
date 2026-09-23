@@ -1,9 +1,24 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @State private var events: [Event] = EventStore.load()
     @State private var editing: Event?
     @State private var showingAdd = false
+    @State private var sharingEvent: Event?
+    @State private var exporting = false
+    @State private var importing = false
+    @AppStorage("autoSort") private var autoSort = false
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// Events in display order: manual (array) or auto (by proximity), with
+    /// pinned events floated to the top in both cases.
+    private var displayEvents: [Event] {
+        let base = autoSort
+            ? events.sorted { abs(dayDelta(to: $0.effectiveTarget())) < abs(dayDelta(to: $1.effectiveTarget())) }
+            : events
+        return base.filter(\.pinned) + base.filter { !$0.pinned }
+    }
 
     var body: some View {
         NavigationStack {
@@ -14,8 +29,7 @@ struct ContentView: View {
                         description: Text("Tap + to add a date to count."))
                 } else {
                     List {
-                        // Manual order is the source of truth; drag to reorder.
-                        ForEach(events) { event in
+                        ForEach(displayEvents) { event in
                             EventRow(event: event)
                                 .listRowBackground(Color.black)
                                 .contentShape(Rectangle())
@@ -26,9 +40,21 @@ struct ContentView: View {
                                               systemImage: event.pinned ? "pin.slash" : "pin")
                                     }.tint(.gray)
                                 }
+                                .swipeActions(edge: .trailing) {
+                                    Button { sharingEvent = event } label: {
+                                        Label("Share", systemImage: "square.and.arrow.up")
+                                    }.tint(.blue)
+                                }
                         }
-                        .onMove { events.move(fromOffsets: $0, toOffset: $1); persist() }
-                        .onDelete { events.remove(atOffsets: $0); persist() }
+                        .onMove { from, to in
+                            guard !autoSort else { return }
+                            events.move(fromOffsets: from, toOffset: to); persist()
+                        }
+                        .onDelete { offsets in
+                            let ids = offsets.map { displayEvents[$0].id }
+                            events.removeAll { ids.contains($0.id) }
+                            persist()
+                        }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -37,7 +63,16 @@ struct ContentView: View {
             .background(Color.black)
             .navigationTitle("DayDelta")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { EditButton() }
+                if !autoSort {
+                    ToolbarItem(placement: .topBarLeading) { EditButton() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Toggle("Auto sort by date", isOn: $autoSort)
+                        Button { exporting = true } label: { Label("Export…", systemImage: "square.and.arrow.up") }
+                        Button { importing = true } label: { Label("Import…", systemImage: "square.and.arrow.down") }
+                    } label: { Image(systemName: "ellipsis.circle") }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAdd = true } label: { Image(systemName: "plus") }
                 }
@@ -45,6 +80,16 @@ struct ContentView: View {
         }
         .tint(.white)
         .onAppear { Notifications.requestAuthIfNeeded() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Notifications.sync(events) }
+        }
+        .sheet(item: $sharingEvent) { event in ShareSheet(event: event) }
+        .fileExporter(isPresented: $exporting,
+                      document: EventsDocument(data: exportData()),
+                      contentType: .json,
+                      defaultFilename: "daydelta-backup") { _ in }
+        .fileImporter(isPresented: $importing,
+                      allowedContentTypes: [.json]) { handleImport($0) }
         .sheet(isPresented: $showingAdd) {
             EventEditView(event: nil) { saved in
                 events.append(saved); persist()
@@ -66,6 +111,24 @@ struct ContentView: View {
         if events[i].pinned {
             let e = events.remove(at: i)
             events.insert(e, at: 0)
+        }
+        persist()
+    }
+
+    private func exportData() -> Data {
+        (try? JSONEncoder().encode(events)) ?? Data()
+    }
+
+    /// Merge imported events into the list, upserting by id.
+    private func handleImport(_ result: Result<URL, Error>) {
+        guard case .success(let url) = result else { return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let imported = try? JSONDecoder().decode([Event].self, from: data) else { return }
+        for e in imported {
+            if let i = events.firstIndex(where: { $0.id == e.id }) { events[i] = e }
+            else { events.append(e) }
         }
         persist()
     }
