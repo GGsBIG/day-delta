@@ -6,7 +6,7 @@ struct ContentView: View {
     @State private var showingAdd = false
 
     private var sorted: [Event] {
-        events.sorted { abs(dayDelta(to: $0.targetDate)) < abs(dayDelta(to: $1.targetDate)) }
+        events.sorted { abs(dayDelta(to: $0.effectiveTarget())) < abs(dayDelta(to: $1.effectiveTarget())) }
     }
 
     var body: some View {
@@ -63,20 +63,32 @@ struct ContentView: View {
 struct EventRow: View {
     let event: Event
     var body: some View {
-        let t = deltaText(dayDelta(to: event.targetDate))
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.title)
-                    .font(.system(.subheadline, design: .monospaced))
-                    .foregroundStyle(.gray)
-                Text(t.subtitle)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.gray)
+        let target = event.effectiveTarget()
+        let delta = dayDelta(to: target)
+        let t = deltaText(delta)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(event.title)
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.gray)
+                    Text(t.subtitle)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.gray)
+                }
+                Spacer()
+                Text(t.number)
+                    .font(.system(size: 44, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
             }
-            Spacer()
-            Text(t.number)
-                .font(.system(size: 44, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white)
+            Text(dateLabel(target))
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(.secondary)
+            if delta <= 0, let m = nextMilestone(dayCount: -delta + 1) {
+                Text("next: \(m.target) · \(m.daysAway) days")
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.vertical, 6)
     }

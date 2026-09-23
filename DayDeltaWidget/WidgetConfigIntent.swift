@@ -10,4 +10,7 @@ struct WidgetConfigIntent: WidgetConfigurationIntent {
 
     @Parameter(title: "Date")
     var date: Date?
+
+    @Parameter(title: "Repeats yearly", default: false)
+    var repeatsYearly: Bool
 }
