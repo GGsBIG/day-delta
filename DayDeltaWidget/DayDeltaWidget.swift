@@ -5,12 +5,15 @@ struct DayEntry: TimelineEntry {
     let date: Date
     let title: String
     let target: Date?
-    let repeatsYearly: Bool
+    let mode: CountMode
+    let recurrence: Recurrence
+    let iconName: String?
 }
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> DayEntry {
-        DayEntry(date: Date(), title: "Event", target: Date(), repeatsYearly: false)
+        DayEntry(date: Date(), title: "Event", target: Date(),
+                 mode: .auto, recurrence: .none, iconName: nil)
     }
 
     func snapshot(for configuration: WidgetConfigIntent, in context: Context) async -> DayEntry {
@@ -24,7 +27,8 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     private func entry(for c: WidgetConfigIntent) -> DayEntry {
-        DayEntry(date: Date(), title: c.title, target: c.date, repeatsYearly: c.repeatsYearly)
+        DayEntry(date: Date(), title: c.title, target: c.date,
+                 mode: c.mode, recurrence: c.recurrence, iconName: c.icon.assetName)
     }
 }
 
@@ -34,12 +38,14 @@ struct DayDeltaWidgetEntryView: View {
 
     private var target: Date? {
         guard let t = entry.target else { return nil }
-        return entry.repeatsYearly ? nextYearlyOccurrence(of: t, from: entry.date) : t
+        return nextOccurrence(of: t, recurrence: entry.recurrence, from: entry.date)
     }
 
     private var delta: Int? { target.map { dayDelta(to: $0, from: entry.date) } }
 
-    private var info: (number: String, subtitle: String)? { delta.map(deltaText) }
+    private var info: (number: String, subtitle: String)? {
+        delta.map { countDisplay(delta: $0, mode: entry.mode) }
+    }
 
     var body: some View {
         switch family {
@@ -50,14 +56,23 @@ struct DayDeltaWidgetEntryView: View {
         }
     }
 
+    private var titleRow: some View {
+        HStack(spacing: 5) {
+            if let iconName = entry.iconName {
+                Image(iconName).renderingMode(.template).resizable().scaledToFit()
+                    .frame(width: 12, height: 12)
+            }
+            Text(entry.title).lineLimit(1)
+        }
+    }
+
     // MARK: Home Screen (black + monospace)
 
     private var homeView: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(entry.title)
+            titleRow
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.gray)
-                .lineLimit(1)
             Spacer(minLength: 0)
             if let info, let target, let delta {
                 Text(info.number)
@@ -71,7 +86,8 @@ struct DayDeltaWidgetEntryView: View {
                 Text(dateLabel(target))
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.gray)
-                if family == .systemMedium, delta <= 0, let m = nextMilestone(dayCount: -delta + 1) {
+                if family == .systemMedium, entry.mode == .dayCounter, delta <= 0,
+                   let m = nextMilestone(dayCount: -delta + 1) {
                     Text("next: \(m.target) · \(m.daysAway) days")
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundStyle(.gray)
@@ -90,9 +106,7 @@ struct DayDeltaWidgetEntryView: View {
 
     private var rectangularView: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(entry.title)
-                .font(.system(.caption2, design: .monospaced))
-                .lineLimit(1)
+            titleRow.font(.system(.caption2, design: .monospaced))
             if let info {
                 Text(info.number)
                     .font(.system(.title, design: .monospaced, weight: .bold))

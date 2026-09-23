@@ -7,26 +7,47 @@ struct EventEditView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var date: Date
-    @State private var repeatsYearly: Bool
+    @State private var mode: CountMode
+    @State private var recurrence: Recurrence
+    @State private var icon: String?
+    @State private var notify: Bool
 
     init(event: Event?, onSave: @escaping (Event) -> Void) {
         self.event = event
         self.onSave = onSave
         _title = State(initialValue: event?.title ?? "")
         _date = State(initialValue: event?.targetDate ?? Date())
-        _repeatsYearly = State(initialValue: event?.repeatsYearly ?? false)
+        _mode = State(initialValue: event?.mode ?? .auto)
+        _recurrence = State(initialValue: event?.recurrence ?? .none)
+        _icon = State(initialValue: event?.icon)
+        _notify = State(initialValue: event?.notify ?? false)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Title", text: $title)
-                    .font(.system(.body, design: .monospaced))
-                DatePicker("Date", selection: $date, displayedComponents: .date)
-                    .font(.system(.body, design: .monospaced))
-                Toggle("Repeats yearly", isOn: $repeatsYearly)
-                    .font(.system(.body, design: .monospaced))
+                Section {
+                    TextField("Title", text: $title)
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                }
+                Section("Icon") {
+                    IconPicker(selection: $icon)
+                }
+                Section {
+                    Picker("Count", selection: $mode) {
+                        Text("Auto (until / since)").tag(CountMode.auto)
+                        Text("Day counter").tag(CountMode.dayCounter)
+                    }
+                    Picker("Repeat", selection: $recurrence) {
+                        Text("Never").tag(Recurrence.none)
+                        Text("Weekly").tag(Recurrence.weekly)
+                        Text("Monthly").tag(Recurrence.monthly)
+                        Text("Yearly").tag(Recurrence.yearly)
+                    }
+                    Toggle("Notify at 9am", isOn: $notify)
+                }
             }
+            .font(.system(.body, design: .monospaced))
             .scrollContentBackground(.hidden)
             .background(Color.black)
             .navigationTitle(event == nil ? "New" : "Edit")
@@ -41,7 +62,10 @@ struct EventEditView: View {
                         var e = event ?? Event(title: trimmed, targetDate: date)
                         e.title = trimmed
                         e.targetDate = date
-                        e.repeatsYearly = repeatsYearly
+                        e.mode = mode
+                        e.recurrence = recurrence
+                        e.icon = icon
+                        e.notify = notify
                         onSave(e)
                         dismiss()
                     }
@@ -50,5 +74,40 @@ struct EventEditView: View {
         }
         .preferredColorScheme(.dark)
         .tint(.white)
+    }
+}
+
+/// Grid of custom SVG icons plus a "none" option; binds to an asset name.
+struct IconPicker: View {
+    @Binding var selection: String?
+    private let columns = [GridItem(.adaptive(minimum: 44), spacing: 12)]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 12) {
+            cell(nil)
+            ForEach(eventIconNames, id: \.self) { cell($0) }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func cell(_ name: String?) -> some View {
+        let selected = selection == name
+        Button {
+            selection = name
+        } label: {
+            Group {
+                if let name {
+                    Image(name).renderingMode(.template).resizable().scaledToFit().padding(9)
+                } else {
+                    Image(systemName: "nosign").resizable().scaledToFit().padding(11)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .foregroundStyle(selected ? Color.black : Color.white)
+            .background(selected ? Color.white : Color.white.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 }

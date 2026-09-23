@@ -5,10 +5,6 @@ struct ContentView: View {
     @State private var editing: Event?
     @State private var showingAdd = false
 
-    private var sorted: [Event] {
-        events.sorted { abs(dayDelta(to: $0.effectiveTarget())) < abs(dayDelta(to: $1.effectiveTarget())) }
-    }
-
     var body: some View {
         NavigationStack {
             Group {
@@ -18,13 +14,21 @@ struct ContentView: View {
                         description: Text("Tap + to add a date to count."))
                 } else {
                     List {
-                        ForEach(sorted) { event in
+                        // Manual order is the source of truth; drag to reorder.
+                        ForEach(events) { event in
                             EventRow(event: event)
                                 .listRowBackground(Color.black)
                                 .contentShape(Rectangle())
                                 .onTapGesture { editing = event }
+                                .swipeActions(edge: .leading) {
+                                    Button { togglePin(event) } label: {
+                                        Label(event.pinned ? "Unpin" : "Pin",
+                                              systemImage: event.pinned ? "pin.slash" : "pin")
+                                    }.tint(.gray)
+                                }
                         }
-                        .onDelete(perform: delete)
+                        .onMove { events.move(fromOffsets: $0, toOffset: $1); persist() }
+                        .onDelete { events.remove(atOffsets: $0); persist() }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -33,10 +37,14 @@ struct ContentView: View {
             .background(Color.black)
             .navigationTitle("DayDelta")
             .toolbar {
-                Button { showingAdd = true } label: { Image(systemName: "plus") }
+                ToolbarItem(placement: .topBarLeading) { EditButton() }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showingAdd = true } label: { Image(systemName: "plus") }
+                }
             }
         }
         .tint(.white)
+        .onAppear { Notifications.requestAuthIfNeeded() }
         .sheet(isPresented: $showingAdd) {
             EventEditView(event: nil) { saved in
                 events.append(saved); persist()
@@ -51,13 +59,21 @@ struct ContentView: View {
         }
     }
 
-    private func delete(at offsets: IndexSet) {
-        let ids = offsets.map { sorted[$0].id }
-        events.removeAll { ids.contains($0.id) }
+    /// Pin also floats the event to the top; unpin just clears the flag.
+    private func togglePin(_ event: Event) {
+        guard let i = events.firstIndex(where: { $0.id == event.id }) else { return }
+        events[i].pinned.toggle()
+        if events[i].pinned {
+            let e = events.remove(at: i)
+            events.insert(e, at: 0)
+        }
         persist()
     }
 
-    private func persist() { EventStore.save(events) }
+    private func persist() {
+        EventStore.save(events)
+        Notifications.sync(events)
+    }
 }
 
 struct EventRow: View {
@@ -65,13 +81,24 @@ struct EventRow: View {
     var body: some View {
         let target = event.effectiveTarget()
         let delta = dayDelta(to: target)
-        let t = deltaText(delta)
+        let t = countDisplay(delta: delta, mode: event.mode)
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(event.title)
-                        .font(.system(.subheadline, design: .monospaced))
-                        .foregroundStyle(.gray)
+                    HStack(spacing: 6) {
+                        if let icon = event.icon {
+                            Image(icon).renderingMode(.template).resizable().scaledToFit()
+                                .frame(width: 14, height: 14)
+                                .foregroundStyle(.gray)
+                        }
+                        Text(event.title)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.gray)
+                        if event.pinned {
+                            Image(systemName: "pin.fill")
+                                .font(.caption2).foregroundStyle(.gray)
+                        }
+                    }
                     Text(t.subtitle)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.gray)
@@ -84,7 +111,7 @@ struct EventRow: View {
             Text(dateLabel(target))
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(.secondary)
-            if delta <= 0, let m = nextMilestone(dayCount: -delta + 1) {
+            if delta <= 0, event.mode == .dayCounter, let m = nextMilestone(dayCount: -delta + 1) {
                 Text("next: \(m.target) · \(m.daysAway) days")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)

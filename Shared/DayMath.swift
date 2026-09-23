@@ -1,5 +1,11 @@
 import Foundation
 
+/// Asset names in Shared/EventIcons.xcassets, in picker order. `nil` = no icon.
+let eventIconNames = [
+    "ic-heart", "ic-star", "ic-cake", "ic-gift", "ic-plane", "ic-flag",
+    "ic-book", "ic-briefcase", "ic-ring", "ic-target", "ic-clock", "ic-graduation",
+]
+
 /// Whole-day difference between two dates, each normalized to start-of-day.
 /// Positive = target in the future (countdown), negative = past (count-up), 0 = today.
 /// Normalizing both to startOfDay first avoids the off-by-one where a sub-24h
@@ -10,28 +16,61 @@ func dayDelta(to target: Date, from now: Date = Date(), calendar: Calendar = .cu
     return calendar.dateComponents([.day], from: a, to: b).day ?? 0
 }
 
-/// Big number + subtitle.
-/// Future date → countdown ("N" / "days left").
-/// Today or past → day-together counter: the start day is day 1, so a date
-/// that is `k` days in the past shows day `k + 1` ("N" / "days together").
-func deltaText(_ delta: Int) -> (number: String, subtitle: String) {
-    if delta > 0 { return ("\(delta)", "days left") }
-    return ("\(-delta + 1)", "days together")
+/// How a single event turns its day-delta into text.
+/// `auto` = future counts down, past counts up ("N days ago"), 0 = today.
+/// `dayCounter` = inclusive "Day N" counter (start day is day 1) for today/past.
+enum CountMode: String, Codable, CaseIterable {
+    case auto
+    case dayCounter
 }
 
-/// The next time this date's month/day comes around: this year's occurrence, or
-/// next year's if this year's has already passed. Used for yearly-repeat events.
-/// ponytail: Feb 29 in a non-leap year falls back to whatever Foundation rolls
-/// it to (Mar 1) — acceptable for a personal counter.
-func nextYearlyOccurrence(of date: Date, from now: Date = Date(), calendar: Calendar = .current) -> Date {
-    let md = calendar.dateComponents([.month, .day], from: date)
+/// Big number + subtitle for a delta under a given mode.
+func countDisplay(delta: Int, mode: CountMode) -> (number: String, subtitle: String) {
+    switch mode {
+    case .dayCounter:
+        if delta > 0 { return ("\(delta)", "days left") } // counter start still ahead
+        return ("\(-delta + 1)", "days")                  // Day N, start day = 1
+    case .auto:
+        if delta > 0 { return ("\(delta)", "days left") }
+        if delta < 0 { return ("\(-delta)", "days ago") }
+        return ("0", "today")
+    }
+}
+
+/// How an event's date repeats.
+enum Recurrence: String, Codable, CaseIterable {
+    case none
+    case weekly
+    case monthly
+    case yearly
+
+    var component: Calendar.Component? {
+        switch self {
+        case .none:    return nil
+        case .weekly:  return .weekOfYear
+        case .monthly: return .month
+        case .yearly:  return .year
+        }
+    }
+}
+
+/// The next occurrence of `date` on/after today under a recurrence rule.
+/// `.none` returns the date unchanged; otherwise the anchor is stepped forward
+/// by the recurrence unit until it reaches today or later.
+/// ponytail: naive forward stepping capped at 1000 iterations — plenty for any
+/// personal date range; direct arithmetic isn't worth the edge-case risk.
+func nextOccurrence(of date: Date, recurrence: Recurrence,
+                    from now: Date = Date(), calendar: Calendar = .current) -> Date {
+    guard let unit = recurrence.component else { return date }
     let today = calendar.startOfDay(for: now)
-    let year = calendar.component(.year, from: today)
-    var dc = DateComponents(year: year, month: md.month, day: md.day)
-    let thisYear = calendar.startOfDay(for: calendar.date(from: dc)!)
-    if thisYear >= today { return thisYear }
-    dc.year = year + 1
-    return calendar.startOfDay(for: calendar.date(from: dc)!)
+    var d = calendar.startOfDay(for: date)
+    var steps = 0
+    while d < today, steps < 1000 {
+        guard let next = calendar.date(byAdding: unit, value: 1, to: d) else { break }
+        d = calendar.startOfDay(for: next)
+        steps += 1
+    }
+    return d
 }
 
 /// The next milestone strictly greater than `dayCount`, drawn from multiples of

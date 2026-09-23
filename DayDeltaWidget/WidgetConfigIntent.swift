@@ -11,6 +11,12 @@ struct WidgetConfigIntent: WidgetConfigurationIntent {
     @Parameter(title: "Date")
     var date: Date?
 
-    @Parameter(title: "Repeats yearly", default: false)
-    var repeatsYearly: Bool
+    @Parameter(title: "Icon", default: .none)
+    var icon: IconChoice
+
+    @Parameter(title: "Count", default: .auto)
+    var mode: CountMode
+
+    @Parameter(title: "Repeat", default: .none)
+    var recurrence: Recurrence
 }
