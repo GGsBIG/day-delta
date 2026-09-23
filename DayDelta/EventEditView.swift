@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct EventEditView: View {
     let event: Event?
@@ -12,6 +13,9 @@ struct EventEditView: View {
     @State private var icon: String?
     @State private var notify: Bool
     @State private var notifyDaysBefore: Int
+    @State private var note: String
+    @State private var photoFile: String?
+    @State private var pickerItem: PhotosPickerItem?
 
     init(event: Event?, onSave: @escaping (Event) -> Void) {
         self.event = event
@@ -23,6 +27,8 @@ struct EventEditView: View {
         _icon = State(initialValue: event?.icon)
         _notify = State(initialValue: event?.notify ?? false)
         _notifyDaysBefore = State(initialValue: event?.notifyDaysBefore ?? 0)
+        _note = State(initialValue: event?.note ?? "")
+        _photoFile = State(initialValue: event?.photoFile)
     }
 
     var body: some View {
@@ -34,6 +40,28 @@ struct EventEditView: View {
                 }
                 Section("Icon") {
                     IconPicker(selection: $icon)
+                }
+                Section("Photo") {
+                    if let photoFile, let ui = PhotoStore.load(photoFile) {
+                        Image(uiImage: ui)
+                            .resizable().scaledToFill()
+                            .frame(height: 160).frame(maxWidth: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .listRowInsets(EdgeInsets())
+                    }
+                    PhotosPicker(selection: $pickerItem, matching: .images) {
+                        Label(photoFile == nil ? "Add photo" : "Replace photo",
+                              systemImage: "photo")
+                    }
+                    if photoFile != nil {
+                        Button(role: .destructive) { removePhoto() } label: {
+                            Label("Remove photo", systemImage: "trash")
+                        }
+                    }
+                }
+                Section("Note") {
+                    TextField("Note", text: $note, axis: .vertical)
+                        .lineLimit(3...8)
                 }
                 Section {
                     Picker("Count", selection: $mode) {
@@ -77,14 +105,35 @@ struct EventEditView: View {
                         e.icon = icon
                         e.notify = notify
                         e.notifyDaysBefore = notify ? notifyDaysBefore : 0
+                        e.note = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            ? nil : note
+                        e.photoFile = photoFile
                         onSave(e)
                         dismiss()
                     }
                 }
             }
+            .onChange(of: pickerItem) { _, item in loadPhoto(item) }
         }
         .preferredColorScheme(.dark)
         .tint(.white)
+    }
+
+    private func loadPhoto(_ item: PhotosPickerItem?) {
+        guard let item else { return }
+        Task {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let name = PhotoStore.save(data) {
+                if let old = photoFile { PhotoStore.delete(old) }
+                photoFile = name
+            }
+        }
+    }
+
+    private func removePhoto() {
+        if let old = photoFile { PhotoStore.delete(old) }
+        photoFile = nil
+        pickerItem = nil
     }
 }
 

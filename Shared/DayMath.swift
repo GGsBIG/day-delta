@@ -84,6 +84,13 @@ func nextMilestone(dayCount: Int) -> (target: Int, daysAway: Int)? {
     return (target, target - dayCount)
 }
 
+/// True when `date` shares today's month and day (an anniversary of it).
+func isAnniversaryToday(_ date: Date, today: Date = Date(), calendar: Calendar = .current) -> Bool {
+    let a = calendar.dateComponents([.month, .day], from: date)
+    let b = calendar.dateComponents([.month, .day], from: today)
+    return a.month == b.month && a.day == b.day
+}
+
 /// When a reminder should fire: `daysBefore` days before `target`, at `hour`:00.
 func notifyDate(target: Date, daysBefore: Int, hour: Int = 9,
                 calendar: Calendar = .current) -> Date {

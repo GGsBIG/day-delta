@@ -3,13 +3,17 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @State private var events: [Event] = EventStore.load()
-    @State private var editing: Event?
+    @State private var viewing: Event?
     @State private var showingAdd = false
     @State private var sharingEvent: Event?
     @State private var exporting = false
     @State private var importing = false
     @AppStorage("autoSort") private var autoSort = false
     @Environment(\.scenePhase) private var scenePhase
+
+    private var anniversaries: [Event] {
+        events.filter { isAnniversaryToday($0.targetDate) }
+    }
 
     /// Events in display order: manual (array) or auto (by proximity), with
     /// pinned events floated to the top in both cases.
@@ -29,31 +33,37 @@ struct ContentView: View {
                         description: Text("Tap + to add a date to count."))
                 } else {
                     List {
-                        ForEach(displayEvents) { event in
-                            EventRow(event: event)
-                                .listRowBackground(Color.black)
-                                .contentShape(Rectangle())
-                                .onTapGesture { editing = event }
-                                .swipeActions(edge: .leading) {
-                                    Button { togglePin(event) } label: {
-                                        Label(event.pinned ? "Unpin" : "Pin",
-                                              systemImage: event.pinned ? "pin.slash" : "pin")
-                                    }.tint(.gray)
+                        if !anniversaries.isEmpty {
+                            Section("On this day") {
+                                ForEach(anniversaries) { event in
+                                    row(event)
                                 }
-                                .swipeActions(edge: .trailing) {
-                                    Button { sharingEvent = event } label: {
-                                        Label("Share", systemImage: "square.and.arrow.up")
-                                    }.tint(.blue)
-                                }
+                            }
                         }
-                        .onMove { from, to in
-                            guard !autoSort else { return }
-                            events.move(fromOffsets: from, toOffset: to); persist()
-                        }
-                        .onDelete { offsets in
-                            let ids = offsets.map { displayEvents[$0].id }
-                            events.removeAll { ids.contains($0.id) }
-                            persist()
+                        Section {
+                            ForEach(displayEvents) { event in
+                                row(event)
+                                    .swipeActions(edge: .leading) {
+                                        Button { togglePin(event) } label: {
+                                            Label(event.pinned ? "Unpin" : "Pin",
+                                                  systemImage: event.pinned ? "pin.slash" : "pin")
+                                        }.tint(.gray)
+                                    }
+                                    .swipeActions(edge: .trailing) {
+                                        Button { sharingEvent = event } label: {
+                                            Label("Share", systemImage: "square.and.arrow.up")
+                                        }.tint(.blue)
+                                    }
+                            }
+                            .onMove { from, to in
+                                guard !autoSort else { return }
+                                events.move(fromOffsets: from, toOffset: to); persist()
+                            }
+                            .onDelete { offsets in
+                                let ids = offsets.map { displayEvents[$0].id }
+                                events.removeAll { ids.contains($0.id) }
+                                persist()
+                            }
                         }
                     }
                     .listStyle(.plain)
@@ -62,6 +72,9 @@ struct ContentView: View {
             }
             .background(Color.black)
             .navigationTitle("DayDelta")
+            .navigationDestination(item: $viewing) { event in
+                MemoryDetailView(event: event, onUpdate: updateEvent)
+            }
             .toolbar {
                 if !autoSort {
                     ToolbarItem(placement: .topBarLeading) { EditButton() }
@@ -95,13 +108,24 @@ struct ContentView: View {
                 events.append(saved); persist()
             }
         }
-        .sheet(item: $editing) { event in
-            EventEditView(event: event) { saved in
-                if let i = events.firstIndex(where: { $0.id == saved.id }) {
-                    events[i] = saved; persist()
-                }
-            }
+    }
+
+    @ViewBuilder
+    private func row(_ event: Event) -> some View {
+        EventRow(event: event)
+            .listRowBackground(Color.black)
+            .contentShape(Rectangle())
+            .onTapGesture { viewing = event }
+    }
+
+    /// Upsert an edited event back into the list.
+    private func updateEvent(_ saved: Event) {
+        if let i = events.firstIndex(where: { $0.id == saved.id }) {
+            events[i] = saved
+        } else {
+            events.append(saved)
         }
+        persist()
     }
 
     /// Pin also floats the event to the top; unpin just clears the flag.

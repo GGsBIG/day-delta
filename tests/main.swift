@@ -49,6 +49,10 @@ assert(nextMilestone(dayCount: -3) == nil)
 let enPOSIX = Locale(identifier: "en_US_POSIX")
 assert(dateLabel(day(2025, 9, 28), calendar: cal, locale: enPOSIX) == "2025/09/28 (Sun)")
 
+// isAnniversaryToday: month+day match regardless of year
+assert(isAnniversaryToday(day(2020, 6, 15), today: day(2026, 6, 15), calendar: cal) == true)
+assert(isAnniversaryToday(day(2020, 6, 14), today: day(2026, 6, 15), calendar: cal) == false)
+
 // notifyDate: N days before target at 09:00
 let fire = notifyDate(target: day(2026, 6, 15), daysBefore: 3, calendar: cal)
 assert(ymd(fire) == (2026, 6, 12))

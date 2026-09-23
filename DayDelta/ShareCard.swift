@@ -8,6 +8,20 @@ struct CountdownCard: View {
         let target = event.effectiveTarget()
         let delta = dayDelta(to: target)
         let t = countDisplay(delta: delta, mode: event.mode)
+        ZStack {
+            Color.black
+            if let photoFile = event.photoFile, let ui = PhotoStore.load(photoFile) {
+                Image(uiImage: ui).resizable().scaledToFill()
+                LinearGradient(colors: [.black.opacity(0.25), .black.opacity(0.85)],
+                               startPoint: .top, endPoint: .bottom)
+            }
+            content(target: target, t: t)
+        }
+        .frame(width: 340, height: 340)
+        .clipped()
+    }
+
+    private func content(target: Date, t: (number: String, subtitle: String)) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 if let icon = event.icon {
@@ -37,8 +51,7 @@ struct CountdownCard: View {
                 .foregroundStyle(.secondary)
         }
         .padding(28)
-        .frame(width: 340, height: 340, alignment: .leading)
-        .background(Color.black)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 }
 
