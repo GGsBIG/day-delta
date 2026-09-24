@@ -16,6 +16,10 @@ struct EventEditView: View {
     @State private var note: String
     @State private var photoFile: String?
     @State private var pickerItem: PhotosPickerItem?
+    @State private var label: String
+
+    private let labelPresets = ["days", "days together", "days left",
+                                "days ago", "days to go", "nights"]
 
     init(event: Event?, onSave: @escaping (Event) -> Void) {
         self.event = event
@@ -29,6 +33,7 @@ struct EventEditView: View {
         _notifyDaysBefore = State(initialValue: event?.notifyDaysBefore ?? 0)
         _note = State(initialValue: event?.note ?? "")
         _photoFile = State(initialValue: event?.photoFile)
+        _label = State(initialValue: event?.label ?? "")
     }
 
     var body: some View {
@@ -62,6 +67,15 @@ struct EventEditView: View {
                 Section("Note") {
                     TextField("Note", text: $note, axis: .vertical)
                         .lineLimit(3...8)
+                }
+                Section("Label") {
+                    TextField("Auto", text: $label)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            labelChip("Auto", value: "")
+                            ForEach(labelPresets, id: \.self) { labelChip($0, value: $0) }
+                        }
+                    }
                 }
                 Section {
                     Picker("Count", selection: $mode) {
@@ -108,6 +122,8 @@ struct EventEditView: View {
                         e.note = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                             ? nil : note
                         e.photoFile = photoFile
+                        let l = label.trimmingCharacters(in: .whitespaces)
+                        e.label = l.isEmpty ? nil : l
                         onSave(e)
                         dismiss()
                     }
@@ -128,6 +144,21 @@ struct EventEditView: View {
                 photoFile = name
             }
         }
+    }
+
+    private func labelChip(_ title: String, value: String) -> some View {
+        let selected = label == value
+        return Button {
+            label = value
+        } label: {
+            Text(title)
+                .font(.system(.caption, design: .monospaced))
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(selected ? Color.white : Color.white.opacity(0.1))
+                .foregroundStyle(selected ? Color.black : Color.white)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     private func removePhoto() {

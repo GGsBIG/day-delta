@@ -8,12 +8,13 @@ struct DayEntry: TimelineEntry {
     let mode: CountMode
     let recurrence: Recurrence
     let iconName: String?
+    let label: String?
 }
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> DayEntry {
         DayEntry(date: Date(), title: "Event", target: Date(),
-                 mode: .auto, recurrence: .none, iconName: nil)
+                 mode: .auto, recurrence: .none, iconName: nil, label: nil)
     }
 
     func snapshot(for configuration: WidgetConfigIntent, in context: Context) async -> DayEntry {
@@ -28,7 +29,8 @@ struct Provider: AppIntentTimelineProvider {
 
     private func entry(for c: WidgetConfigIntent) -> DayEntry {
         DayEntry(date: Date(), title: c.title, target: c.date,
-                 mode: c.mode, recurrence: c.recurrence, iconName: c.icon.assetName)
+                 mode: c.mode, recurrence: c.recurrence, iconName: c.icon.assetName,
+                 label: c.label)
     }
 }
 
@@ -44,7 +46,10 @@ struct DayDeltaWidgetEntryView: View {
     private var delta: Int? { target.map { dayDelta(to: $0, from: entry.date) } }
 
     private var info: (number: String, subtitle: String)? {
-        delta.map { countDisplay(delta: $0, mode: entry.mode) }
+        guard let delta else { return nil }
+        var d = countDisplay(delta: delta, mode: entry.mode)
+        if let l = entry.label, !l.isEmpty { d.subtitle = l }
+        return d
     }
 
     var body: some View {

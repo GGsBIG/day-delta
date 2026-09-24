@@ -11,6 +11,9 @@ struct WidgetConfigIntent: WidgetConfigurationIntent {
     @Parameter(title: "Date")
     var date: Date?
 
+    @Parameter(title: "Label")
+    var label: String?
+
     @Parameter(title: "Icon", default: .none)
     var icon: IconChoice
 

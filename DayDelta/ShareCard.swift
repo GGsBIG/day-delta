@@ -39,7 +39,7 @@ struct CountdownCard: View {
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.3)
                 .lineLimit(1)
-            Text(t.subtitle)
+            Text(event.label ?? t.subtitle)
                 .font(.system(.title2, design: .monospaced))
                 .foregroundStyle(.gray)
             Text(dateLabel(target))

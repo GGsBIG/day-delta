@@ -186,7 +186,7 @@ struct EventRow: View {
                                 .font(.caption2).foregroundStyle(.gray)
                         }
                     }
-                    Text(t.subtitle)
+                    Text(event.label ?? t.subtitle)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.gray)
                 }

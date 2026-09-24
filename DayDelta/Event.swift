@@ -12,12 +12,14 @@ struct Event: Codable, Identifiable, Hashable {
     var pinned: Bool = false
     var note: String? = nil
     var photoFile: String? = nil
+    /// Overrides the auto subtitle ("days left"/"days ago"/…). nil = auto.
+    var label: String? = nil
 
     init(id: UUID = UUID(), title: String, targetDate: Date,
          mode: CountMode = .auto, recurrence: Recurrence = .none,
          icon: String? = nil, notify: Bool = false,
          notifyDaysBefore: Int = 0, pinned: Bool = false,
-         note: String? = nil, photoFile: String? = nil) {
+         note: String? = nil, photoFile: String? = nil, label: String? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -29,11 +31,12 @@ struct Event: Codable, Identifiable, Hashable {
         self.pinned = pinned
         self.note = note
         self.photoFile = photoFile
+        self.label = label
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, title, targetDate, mode, recurrence, icon, notify, notifyDaysBefore, pinned
-        case note, photoFile
+        case note, photoFile, label
         case repeatsYearly // legacy, decode-only
     }
 
@@ -52,6 +55,7 @@ struct Event: Codable, Identifiable, Hashable {
         try c.encode(pinned, forKey: .pinned)
         try c.encodeIfPresent(note, forKey: .note)
         try c.encodeIfPresent(photoFile, forKey: .photoFile)
+        try c.encodeIfPresent(label, forKey: .label)
     }
 
     // Custom decode so events saved by earlier versions still load: every new
@@ -69,6 +73,7 @@ struct Event: Codable, Identifiable, Hashable {
         pinned = try c.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
         note = try c.decodeIfPresent(String.self, forKey: .note)
         photoFile = try c.decodeIfPresent(String.self, forKey: .photoFile)
+        label = try c.decodeIfPresent(String.self, forKey: .label)
         if let r = try c.decodeIfPresent(Recurrence.self, forKey: .recurrence) {
             recurrence = r
         } else if try c.decodeIfPresent(Bool.self, forKey: .repeatsYearly) == true {

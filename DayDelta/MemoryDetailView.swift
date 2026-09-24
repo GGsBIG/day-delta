@@ -38,7 +38,7 @@ struct MemoryDetailView: View {
                     .font(.system(size: 96, weight: .bold, design: .monospaced))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.3).lineLimit(1)
-                Text(t.subtitle)
+                Text(event.label ?? t.subtitle)
                     .font(.system(.title2, design: .monospaced))
                     .foregroundStyle(.gray)
                 Text(dateLabel(target))
