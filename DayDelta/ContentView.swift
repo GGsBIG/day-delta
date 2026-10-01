@@ -140,21 +140,53 @@ struct ContentView: View {
     }
 
     private func exportData() -> Data {
-        (try? JSONEncoder().encode(events)) ?? Data()
+        let payload = BackupData(events: events,
+                                 txns: TxnStore.load(),
+                                 categories: CategoryStore.load())
+        return (try? JSONEncoder().encode(payload)) ?? Data()
     }
 
-    /// Merge imported events into the list, upserting by id.
+    /// Merge an imported backup. Accepts the new wrapper format and falls back to
+    /// a legacy bare `[Event]` array. Upserts every record by id.
     private func handleImport(_ result: Result<URL, Error>) {
         guard case .success(let url) = result else { return }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        guard let data = try? Data(contentsOf: url),
-              let imported = try? JSONDecoder().decode([Event].self, from: data) else { return }
+        guard let data = try? Data(contentsOf: url) else { return }
+
+        if let backup = try? JSONDecoder().decode(BackupData.self, from: data) {
+            merge(backup.events)
+            mergeTxns(backup.txns)
+            mergeCategories(backup.categories)
+        } else if let legacy = try? JSONDecoder().decode([Event].self, from: data) {
+            merge(legacy)
+        }
+        persist()
+    }
+
+    private func merge(_ imported: [Event]) {
         for e in imported {
             if let i = events.firstIndex(where: { $0.id == e.id }) { events[i] = e }
             else { events.append(e) }
         }
-        persist()
+    }
+
+    private func mergeTxns(_ imported: [Txn]) {
+        var txns = TxnStore.load()
+        for t in imported {
+            if let i = txns.firstIndex(where: { $0.id == t.id }) { txns[i] = t }
+            else { txns.append(t) }
+        }
+        TxnStore.save(txns)
+    }
+
+    private func mergeCategories(_ imported: [Category]) {
+        var cats = CategoryStore.load()
+        for c in imported {
+            if let i = cats.firstIndex(where: { $0.id == c.id }) { cats[i] = c }
+            else { cats.append(c) }
+        }
+        CategoryStore.save(cats)
     }
 
     private func persist() {
