@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-/// 統計 page: period + type toggles, donut, breakdown list, waffle.
+/// Stats page: period + type toggles, donut, breakdown list, waffle.
 struct StatsView: View {
     let txns: [Txn]
     let categories: [Category]

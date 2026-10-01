@@ -8,7 +8,7 @@ struct DayDeltaApp: App {
                 ContentView()
                     .tabItem { Label("Days", systemImage: "calendar") }
                 LedgerView()
-                    .tabItem { Label("記帳", systemImage: "dollarsign.circle") }
+                    .tabItem { Label("Money", systemImage: "dollarsign.circle") }
             }
             .preferredColorScheme(.dark)
             .tint(.white)

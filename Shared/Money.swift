@@ -31,17 +31,17 @@ extension Category {
     /// Seeded on first launch. IDs are per-process stable (a `static let`), then
     /// persisted by `CategoryStore.load()`, so they stay fixed after first run.
     static let builtins: [Category] = [
-        .init(name: "餐飲", type: .expense, icon: nil, colorHex: "#4F9DFF", builtin: true),
-        .init(name: "交通", type: .expense, icon: nil, colorHex: "#A855F7", builtin: true),
-        .init(name: "購物", type: .expense, icon: nil, colorHex: "#F59E0B", builtin: true),
-        .init(name: "娛樂", type: .expense, icon: nil, colorHex: "#22C55E", builtin: true),
-        .init(name: "居住", type: .expense, icon: nil, colorHex: "#EF4444", builtin: true),
-        .init(name: "醫療", type: .expense, icon: nil, colorHex: "#14B8A6", builtin: true),
-        .init(name: "其他", type: .expense, icon: nil, colorHex: "#9CA3AF", builtin: true),
-        .init(name: "薪資", type: .income, icon: nil, colorHex: "#22C55E", builtin: true),
-        .init(name: "獎金", type: .income, icon: nil, colorHex: "#4F9DFF", builtin: true),
-        .init(name: "投資", type: .income, icon: nil, colorHex: "#F59E0B", builtin: true),
-        .init(name: "其他", type: .income, icon: nil, colorHex: "#9CA3AF", builtin: true),
+        .init(name: "Food", type: .expense, icon: nil, colorHex: "#4F9DFF", builtin: true),
+        .init(name: "Transport", type: .expense, icon: nil, colorHex: "#A855F7", builtin: true),
+        .init(name: "Shopping", type: .expense, icon: nil, colorHex: "#F59E0B", builtin: true),
+        .init(name: "Entertainment", type: .expense, icon: nil, colorHex: "#22C55E", builtin: true),
+        .init(name: "Housing", type: .expense, icon: nil, colorHex: "#EF4444", builtin: true),
+        .init(name: "Health", type: .expense, icon: nil, colorHex: "#14B8A6", builtin: true),
+        .init(name: "Other", type: .expense, icon: nil, colorHex: "#9CA3AF", builtin: true),
+        .init(name: "Salary", type: .income, icon: nil, colorHex: "#22C55E", builtin: true),
+        .init(name: "Bonus", type: .income, icon: nil, colorHex: "#4F9DFF", builtin: true),
+        .init(name: "Investment", type: .income, icon: nil, colorHex: "#F59E0B", builtin: true),
+        .init(name: "Other", type: .income, icon: nil, colorHex: "#9CA3AF", builtin: true),
     ]
 }
 

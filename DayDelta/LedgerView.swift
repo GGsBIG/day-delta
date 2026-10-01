@@ -12,7 +12,7 @@ extension Color {
     }
 }
 
-/// The 記帳 tab: a segmented switch between the 明細 (ledger) and 統計 (stats)
+/// The Money tab: a segmented switch between the Ledger and Stats
 /// sub-pages, owning the shared txn/category state.
 struct LedgerView: View {
     @State private var txns: [Txn] = TxnStore.load()
@@ -32,12 +32,12 @@ struct LedgerView: View {
                 }
             }
             .background(Color.black)
-            .navigationTitle("記帳")
+            .navigationTitle("Money")
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("", selection: $page) {
-                        Text("明細").tag(0)
-                        Text("統計").tag(1)
+                        Text("Ledger").tag(0)
+                        Text("Stats").tag(1)
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 180)
@@ -75,7 +75,7 @@ struct LedgerView: View {
         }
     }
 
-    // MARK: 明細
+    // MARK: Ledger
 
     private var ledgerList: some View {
         Group {

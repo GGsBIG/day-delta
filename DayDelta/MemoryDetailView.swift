@@ -54,7 +54,7 @@ struct MemoryDetailView: View {
                     .filter { $0.eventID == event.id && $0.type == .expense }
                     .reduce(Decimal(0)) { $0 + $1.amount }
                 if spent > 0 {
-                    Text("這趟花費 " + formatMoney(spent))
+                    Text("Spent " + formatMoney(spent))
                         .font(.system(.callout, design: .monospaced))
                         .foregroundStyle(.white.opacity(0.85))
                 }
