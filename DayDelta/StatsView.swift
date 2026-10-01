@@ -42,6 +42,7 @@ struct StatsView: View {
                     ContentUnavailableView("No data", systemImage: "chart.pie",
                         description: Text("Nothing recorded in this period."))
                         .padding(.top, 40)
+                        .transition(.opacity)
                 } else {
                     donut
                     breakdownList
@@ -49,6 +50,10 @@ struct StatsView: View {
                 }
             }
             .padding()
+            // One smooth animation drives the whole panel — donut arcs morph,
+            // rows fade/slide, waffle cells recolor — on any period/type change.
+            .animation(.smooth(duration: 0.45), value: period)
+            .animation(.smooth(duration: 0.45), value: type)
         }
         .scrollContentBackground(.hidden)
         .background(Color.black)
@@ -74,6 +79,7 @@ struct StatsView: View {
                 Text(formatMoney(total))
                     .font(.system(.title2, design: .monospaced)).bold()
                     .foregroundStyle(.white).minimumScaleFactor(0.5).lineLimit(1)
+                    .contentTransition(.numericText())
             }
         }
     }
@@ -92,6 +98,7 @@ struct StatsView: View {
                 }
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(.white)
+                .transition(.opacity.combined(with: .move(edge: .leading)))
             }
         }
     }
