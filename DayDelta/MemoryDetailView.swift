@@ -50,6 +50,14 @@ struct MemoryDetailView: View {
                         .foregroundStyle(.white.opacity(0.9))
                         .padding(.top, 8)
                 }
+                let spent = TxnStore.load()
+                    .filter { $0.eventID == event.id && $0.type == .expense }
+                    .reduce(Decimal(0)) { $0 + $1.amount }
+                if spent > 0 {
+                    Text("這趟花費 " + formatMoney(spent))
+                        .font(.system(.callout, design: .monospaced))
+                        .foregroundStyle(.white.opacity(0.85))
+                }
                 Spacer()
             }
             .padding(24)

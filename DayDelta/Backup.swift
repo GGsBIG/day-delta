@@ -19,3 +19,11 @@ struct EventsDocument: FileDocument {
         FileWrapper(regularFileWithContents: data)
     }
 }
+
+/// The full backup payload. Replaces the old bare `[Event]` JSON; `handleImport`
+/// still falls back to decoding a bare array so old backups keep working.
+struct BackupData: Codable {
+    var events: [Event]
+    var txns: [Txn]
+    var categories: [Category]
+}
