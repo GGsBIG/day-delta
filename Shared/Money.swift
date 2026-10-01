@@ -80,3 +80,67 @@ enum CategoryStore {
         UserDefaults.standard.set(data, forKey: key)
     }
 }
+
+// MARK: - Stats
+
+enum StatPeriod: String, CaseIterable {
+    case week, month, year
+
+    var granularity: Calendar.Component {
+        switch self {
+        case .week:  return .weekOfYear
+        case .month: return .month
+        case .year:  return .year
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .week:  return "Week"
+        case .month: return "Month"
+        case .year:  return "Year"
+        }
+    }
+}
+
+/// Txns falling in the same week/month/year as `ref`.
+func txnsInPeriod(_ all: [Txn], period: StatPeriod, containing ref: Date,
+                  calendar: Calendar = .current) -> [Txn] {
+    all.filter { calendar.isDate($0.date, equalTo: ref, toGranularity: period.granularity) }
+}
+
+/// Total per category for one txn type, highest first.
+func categoryTotals(_ txns: [Txn], type: TxnType) -> [(categoryID: UUID, total: Decimal)] {
+    var sums: [UUID: Decimal] = [:]
+    for t in txns where t.type == type {
+        sums[t.categoryID, default: 0] += t.amount
+    }
+    return sums.map { (categoryID: $0.key, total: $0.value) }
+        .sorted { $0.total > $1.total }
+}
+
+/// Distribute `cells` across `totals` by proportion using largest-remainder, so
+/// the result always sums to exactly `cells`. Aligned to the input order.
+func waffleCounts(_ totals: [Decimal], cells: Int = 100) -> [Int] {
+    let sum = totals.reduce(0, +)
+    guard sum > 0 else { return totals.map { _ in 0 } }
+    let raw = totals.map { NSDecimalNumber(decimal: $0 / sum).doubleValue * Double(cells) }
+    var floors = raw.map { Int($0) }
+    var remainder = cells - floors.reduce(0, +)
+    let order = raw.enumerated()
+        .sorted { ($0.element - Double(Int($0.element))) > ($1.element - Double(Int($1.element))) }
+        .map { $0.offset }
+    var i = 0
+    while remainder > 0, i < order.count {
+        floors[order[i]] += 1
+        remainder -= 1
+        i += 1
+    }
+    return floors
+}
+
+/// Locale-formatted currency string, e.g. "NT$150.00".
+func formatMoney(_ amount: Decimal) -> String {
+    let code = Locale.current.currency?.identifier ?? "USD"
+    return amount.formatted(.currency(code: code))
+}

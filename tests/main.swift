@@ -58,4 +58,46 @@ let fire = notifyDate(target: day(2026, 6, 15), daysBefore: 3, calendar: cal)
 assert(ymd(fire) == (2026, 6, 12))
 assert(cal.component(.hour, from: fire) == 9 && cal.component(.minute, from: fire) == 0)
 
+// ---- Money logic ----
+
+func cat(_ hex: String = "#000000") -> Category {
+    Category(name: "c", type: .expense, icon: nil, colorHex: hex)
+}
+let foodID = UUID(), rideID = UUID(), payID = UUID()
+func tx(_ amt: Decimal, _ cid: UUID, _ d: Date, _ type: TxnType = .expense) -> Txn {
+    Txn(type: type, amount: amt, categoryID: cid, date: d)
+}
+
+let sample = [
+    tx(100, foodID, day(2026, 6, 10)),
+    tx(50,  foodID, day(2026, 6, 20)),
+    tx(30,  rideID, day(2026, 6, 15)),
+    tx(999, foodID, day(2026, 5, 10)),       // different month, excluded
+    tx(5000, payID, day(2026, 6, 25), .income),
+]
+
+// txnsInPeriod: month of June 2026 keeps the four June rows, drops May
+let june = txnsInPeriod(sample, period: .month, containing: day(2026, 6, 1), calendar: cal)
+assert(june.count == 4)
+
+// categoryTotals: expense only, descending by total
+let totals = categoryTotals(june, type: .expense)
+assert(totals.count == 2)
+assert(totals[0].categoryID == foodID && totals[0].total == 150)
+assert(totals[1].categoryID == rideID && totals[1].total == 30)
+
+// income is separate
+let inc = categoryTotals(june, type: .income)
+assert(inc.count == 1 && inc[0].total == 5000)
+
+// waffleCounts: always sums to exactly 100, proportional
+let cells = waffleCounts([Decimal(150), Decimal(30)])
+assert(cells.reduce(0, +) == 100)
+assert(cells[0] == 83 && cells[1] == 17)   // 150/180=83.3 -> 83, 30/180=16.7 -> 17
+
+// waffleCounts with no spend -> all zero, no crash
+assert(waffleCounts([Decimal(0), Decimal(0)]) == [0, 0])
+
 print("all DayMath tests passed")
+
+print("all money tests passed")
