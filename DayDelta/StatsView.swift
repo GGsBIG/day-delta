@@ -54,6 +54,8 @@ struct StatsView: View {
             // rows fade/slide, waffle cells recolor — on any period/type change.
             .animation(.smooth(duration: 0.45), value: period)
             .animation(.smooth(duration: 0.45), value: type)
+            .sensoryFeedback(.selection, trigger: period)
+            .sensoryFeedback(.selection, trigger: type)
         }
         .scrollContentBackground(.hidden)
         .background(Color.black)
