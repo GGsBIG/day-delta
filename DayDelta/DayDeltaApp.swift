@@ -51,7 +51,7 @@ private struct RootView: View {
     private func tabButton(_ i: Int, _ title: String, _ icon: String) -> some View {
         Button {
             guard tab != i else { return }
-            withAnimation(.smooth(duration: 0.4)) { tab = i }
+            withAnimation(.bouncy(duration: 0.5)) { tab = i }
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: icon).font(.system(size: 20))
