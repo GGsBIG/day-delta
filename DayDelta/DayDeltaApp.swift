@@ -4,8 +4,14 @@ import SwiftUI
 struct DayDeltaApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.dark)
+            TabView {
+                ContentView()
+                    .tabItem { Label("Days", systemImage: "calendar") }
+                LedgerView()
+                    .tabItem { Label("記帳", systemImage: "dollarsign.circle") }
+            }
+            .preferredColorScheme(.dark)
+            .tint(.white)
         }
     }
 }
