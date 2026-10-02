@@ -148,6 +148,18 @@ assert(applyAmountKey("12", .delete) == "1")
 assert(applyAmountKey("1", .delete) == "")
 assert(applyAmountKey("", .delete) == "")
 
+// accountBalance: income - expense per account; nil = unassigned bucket
+let accA = UUID(), accB = UUID()
+let balTxns = [
+    Txn(type: .income,  amount: 1000, categoryID: foodID, date: day(2026, 10, 1), accountID: accA),
+    Txn(type: .expense, amount: 300,  categoryID: foodID, date: day(2026, 10, 2), accountID: accA),
+    Txn(type: .expense, amount: 50,   categoryID: rideID, date: day(2026, 10, 2), accountID: accB),
+    Txn(type: .expense, amount: 20,   categoryID: rideID, date: day(2026, 10, 3)),  // unassigned
+]
+assert(accountBalance(balTxns, accountID: accA) == 700)
+assert(accountBalance(balTxns, accountID: accB) == -50)
+assert(accountBalance(balTxns, accountID: nil) == -20)
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
