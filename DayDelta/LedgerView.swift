@@ -21,6 +21,8 @@ struct LedgerView: View {
     @State private var editingTxn: Txn?
     @State private var addingTxn = false
     @State private var managingCategories = false
+    @State private var monthAnchor = Date()
+    @State private var selectedDay = Calendar.current.startOfDay(for: Date())
 
     var body: some View {
         NavigationStack {
@@ -52,7 +54,7 @@ struct LedgerView: View {
                 }
             }
             .sheet(isPresented: $addingTxn) {
-                TxnEditView(txn: nil, categories: categories) { saved in
+                TxnEditView(txn: nil, categories: categories, defaultDate: selectedDay) { saved in
                     txns.append(saved); persist()
                 }
             }
@@ -78,52 +80,62 @@ struct LedgerView: View {
     // MARK: Ledger
 
     private var ledgerList: some View {
-        Group {
-            if txns.isEmpty {
-                ContentUnavailableView("No records", systemImage: "list.bullet",
-                    description: Text("Tap + to add income or expense."))
+        ScrollView {
+            VStack(spacing: 16) {
+                MonthCalendarView(
+                    monthAnchor: monthAnchor,
+                    txns: txns,
+                    categories: categories,
+                    selectedDay: $selectedDay,
+                    onPrevMonth: { changeMonth(-1) },
+                    onNextMonth: { changeMonth(1) }
+                )
+                .padding(.top, 8)
+
+                selectedDayList
+            }
+            .padding(.horizontal)
+        }
+        .scrollContentBackground(.hidden)
+    }
+
+    @ViewBuilder
+    private var selectedDayList: some View {
+        let rows = txnsOn(txns, day: selectedDay).sorted { $0.date > $1.date }
+        VStack(alignment: .leading, spacing: 10) {
+            Text(dateLabel(selectedDay))
+                .font(.system(.subheadline, design: .monospaced))
+                .foregroundStyle(.gray)
+            if rows.isEmpty {
+                Text("No transactions")
+                    .font(.system(.callout, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 12)
             } else {
-                List {
-                    summarySection
-                    ForEach(dayGroups, id: \.0) { day, rows in
-                        Section(dateLabel(day)) {
-                            ForEach(rows) { t in
-                                row(t)
-                                    .listRowBackground(Color.black)
-                                    .contentShape(Rectangle())
-                                    .onTapGesture { editingTxn = t }
+                ForEach(rows) { t in
+                    row(t)
+                        .contentShape(Rectangle())
+                        .onTapGesture { editingTxn = t }
+                        .contextMenu {
+                            Button(role: .destructive) { delete(t) } label: {
+                                Label("Delete", systemImage: "trash")
                             }
-                            .onDelete { deleteInDay(day: day, offsets: $0) }
                         }
-                    }
                 }
-                .listStyle(.plain)
-                .scrollContentBackground(.hidden)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var summarySection: some View {
-        let month = txnsInPeriod(txns, period: .month, containing: Date())
-        let income = categoryTotals(month, type: .income).reduce(Decimal(0)) { $0 + $1.total }
-        let expense = categoryTotals(month, type: .expense).reduce(Decimal(0)) { $0 + $1.total }
-        return Section("This month") {
-            HStack {
-                summaryCell("Income", income, .green)
-                summaryCell("Expense", expense, .red)
-                summaryCell("Net", income - expense, .white)
-            }
-            .listRowBackground(Color.black)
-        }
+    private func changeMonth(_ delta: Int) {
+        monthAnchor = addMonths(delta, to: monthAnchor)
     }
 
-    private func summaryCell(_ label: String, _ value: Decimal, _ color: Color) -> some View {
-        VStack(spacing: 2) {
-            Text(label).font(.caption).foregroundStyle(.gray)
-            Text(formatMoney(value)).font(.system(.callout, design: .monospaced))
-                .foregroundStyle(color).minimumScaleFactor(0.6).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
+    /// Delete a selected-day transaction by id.
+    private func delete(_ t: Txn) {
+        txns.removeAll { $0.id == t.id }
+        persist()
     }
 
     private func row(_ t: Txn) -> some View {
@@ -141,20 +153,6 @@ struct LedgerView: View {
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(t.type == .expense ? .red : .green)
         }
-    }
-
-    /// Txns grouped by start-of-day, newest day first.
-    private var dayGroups: [(Date, [Txn])] {
-        let cal = Calendar.current
-        let grouped = Dictionary(grouping: txns) { cal.startOfDay(for: $0.date) }
-        return grouped.keys.sorted(by: >).map { ($0, grouped[$0]!.sorted { $0.date > $1.date }) }
-    }
-
-    private func deleteInDay(day: Date, offsets: IndexSet) {
-        let rows = (dayGroups.first { $0.0 == day }?.1) ?? []
-        let ids = offsets.map { rows[$0].id }
-        txns.removeAll { ids.contains($0.id) }
-        persist()
     }
 
     private func persist() { TxnStore.save(txns) }
