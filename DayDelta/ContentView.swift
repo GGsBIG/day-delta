@@ -142,7 +142,8 @@ struct ContentView: View {
     private func exportData() -> Data {
         let payload = BackupData(events: events,
                                  txns: TxnStore.load(),
-                                 categories: CategoryStore.load())
+                                 categories: CategoryStore.load(),
+                                 accounts: AccountStore.load())
         return (try? JSONEncoder().encode(payload)) ?? Data()
     }
 
@@ -158,6 +159,7 @@ struct ContentView: View {
             merge(backup.events)
             mergeTxns(backup.txns)
             mergeCategories(backup.categories)
+            mergeAccounts(backup.accounts)
         } else if let legacy = try? JSONDecoder().decode([Event].self, from: data) {
             merge(legacy)
         }
@@ -187,6 +189,15 @@ struct ContentView: View {
             else { cats.append(c) }
         }
         CategoryStore.save(cats)
+    }
+
+    private func mergeAccounts(_ imported: [Account]) {
+        var accs = AccountStore.load()
+        for a in imported {
+            if let i = accs.firstIndex(where: { $0.id == a.id }) { accs[i] = a }
+            else { accs.append(a) }
+        }
+        AccountStore.save(accs)
     }
 
     private func persist() {
