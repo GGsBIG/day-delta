@@ -24,12 +24,19 @@ private struct RootView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             Group {
-                if tab == 0 {
+                switch tab {
+                case 0:
                     ContentView()
                         .transition(.move(edge: .leading).combined(with: .opacity))
-                } else {
+                case 1:
                     LedgerView(requestAddTxn: $requestAddTxn)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                        .transition(.opacity)
+                case 2:
+                    StatsView()
+                        .transition(.opacity)
+                default:
+                    AccountsView()
+                        .transition(.opacity)
                 }
             }
         }
@@ -40,11 +47,13 @@ private struct RootView: View {
     private var tabBar: some View {
         HStack(spacing: 0) {
             tabButton(0, "Days", "calendar")
+            tabButton(1, "Ledger", "calendar.day.timeline.left")
             if tab == 1 {
                 addButton
                     .transition(.scale.combined(with: .opacity))
             }
-            tabButton(1, "Money", "dollarsign.circle")
+            tabButton(2, "Stats", "chart.pie")
+            tabButton(3, "Accounts", "creditcard")
         }
         .padding(.top, 8)
         .background(.black)
