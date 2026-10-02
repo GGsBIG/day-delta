@@ -14,6 +14,7 @@ struct Txn: Codable, Identifiable, Hashable {
     var date: Date
     var note: String?
     var eventID: UUID?        // optional link to a countdown Event
+    var accountID: UUID?      // optional payment account; nil for legacy rows
 }
 
 /// A spending/earning bucket. `builtin` categories can be renamed/recolored but
@@ -43,6 +44,42 @@ extension Category {
         .init(name: "Investment", type: .income, icon: nil, colorHex: "#F59E0B", builtin: true),
         .init(name: "Other", type: .income, icon: nil, colorHex: "#9CA3AF", builtin: true),
     ]
+}
+
+/// A payment account/method (Cash, Bank, …). Builtins can be renamed/recolored
+/// but not deleted. Mirrors Category, minus the type split.
+struct Account: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var colorHex: String
+    var builtin: Bool = false
+}
+
+extension Account {
+    static let builtins: [Account] = [
+        .init(name: "Cash", colorHex: "#22C55E", builtin: true),
+        .init(name: "Bank", colorHex: "#4F9DFF", builtin: true),
+        .init(name: "Credit Card", colorHex: "#F59E0B", builtin: true),
+    ]
+}
+
+enum AccountStore {
+    private static let key = "daydelta.accounts"
+
+    static func load() -> [Account] {
+        if let data = UserDefaults.standard.data(forKey: key),
+           let accs = try? JSONDecoder().decode([Account].self, from: data),
+           !accs.isEmpty {
+            return accs
+        }
+        save(Account.builtins)
+        return Account.builtins
+    }
+
+    static func save(_ accs: [Account]) {
+        guard let data = try? JSONEncoder().encode(accs) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
 }
 
 enum TxnStore {
