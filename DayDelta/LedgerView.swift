@@ -18,7 +18,6 @@ struct LedgerView: View {
     @State private var txns: [Txn] = TxnStore.load()
     @State private var categories: [Category] = CategoryStore.load()
     @State private var accounts: [Account] = AccountStore.load()
-    @State private var page = 0
     @State private var editingTxn: Txn?
     @State private var managing = false
     @State private var monthAnchor = Date()
@@ -34,24 +33,10 @@ struct LedgerView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if page == 0 {
-                    ledgerList
-                } else {
-                    StatsView(txns: txns, categories: categories)
-                }
-            }
+            ledgerList
             .background(Color.black)
-            .navigationTitle("Money")
+            .navigationTitle("Ledger")
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("", selection: $page) {
-                        Text("Ledger").tag(0)
-                        Text("Stats").tag(1)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 180)
-                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Edit") { managing = true }
                 }

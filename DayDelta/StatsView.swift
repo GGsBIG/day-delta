@@ -1,10 +1,10 @@
 import SwiftUI
 import Charts
 
-/// Stats page: period + type toggles, donut, breakdown list.
+/// Stats tab: period + type toggles, donut, breakdown list. Loads its own data.
 struct StatsView: View {
-    let txns: [Txn]
-    let categories: [Category]
+    @State private var txns: [Txn] = TxnStore.load()
+    @State private var categories: [Category] = CategoryStore.load()
 
     @State private var period: StatPeriod = .month
     @State private var type: TxnType = .expense
@@ -25,39 +25,48 @@ struct StatsView: View {
     private var total: Decimal { breakdown.reduce(0) { $0 + $1.total } }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                Picker("Period", selection: $period) {
-                    ForEach(StatPeriod.allCases, id: \.self) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.segmented)
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    Picker("Period", selection: $period) {
+                        ForEach(StatPeriod.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
 
-                Picker("Type", selection: $type) {
-                    Text("Expense").tag(TxnType.expense)
-                    Text("Income").tag(TxnType.income)
-                }
-                .pickerStyle(.segmented)
+                    Picker("Type", selection: $type) {
+                        Text("Expense").tag(TxnType.expense)
+                        Text("Income").tag(TxnType.income)
+                    }
+                    .pickerStyle(.segmented)
 
-                if breakdown.isEmpty {
-                    ContentUnavailableView("No data", systemImage: "chart.pie",
-                        description: Text("Nothing recorded in this period."))
-                        .padding(.top, 40)
-                        .transition(.opacity)
-                } else {
-                    donut
-                    breakdownList
+                    if breakdown.isEmpty {
+                        ContentUnavailableView("No data", systemImage: "chart.pie",
+                            description: Text("Nothing recorded in this period."))
+                            .padding(.top, 40)
+                            .transition(.opacity)
+                    } else {
+                        donut
+                        breakdownList
+                    }
                 }
+                .padding()
+                // One smooth animation drives the whole panel — donut arcs morph and
+                // rows fade/slide — on any period/type change.
+                .animation(.smooth(duration: 0.45), value: period)
+                .animation(.smooth(duration: 0.45), value: type)
+                .sensoryFeedback(.selection, trigger: period)
+                .sensoryFeedback(.selection, trigger: type)
             }
-            .padding()
-            // One smooth animation drives the whole panel — donut arcs morph and
-            // rows fade/slide — on any period/type change.
-            .animation(.smooth(duration: 0.45), value: period)
-            .animation(.smooth(duration: 0.45), value: type)
-            .sensoryFeedback(.selection, trigger: period)
-            .sensoryFeedback(.selection, trigger: type)
+            .scrollContentBackground(.hidden)
+            .background(Color.black)
+            .navigationTitle("Stats")
         }
-        .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .preferredColorScheme(.dark)
+        .tint(.white)
+        .onAppear {
+            txns = TxnStore.load()
+            categories = CategoryStore.load()
+        }
     }
 
     // MARK: Donut

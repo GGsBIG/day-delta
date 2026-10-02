@@ -240,3 +240,11 @@ func applyAmountKey(_ s: String, _ key: AmountKey) -> String {
         return s + "\(d)"
     }
 }
+
+/// Net balance for one account: its income minus its expense. Pass nil for the
+/// "unassigned" bucket (transactions with no account).
+func accountBalance(_ txns: [Txn], accountID: UUID?) -> Decimal {
+    txns.filter { $0.accountID == accountID }.reduce(Decimal(0)) {
+        $0 + ($1.type == .income ? $1.amount : -$1.amount)
+    }
+}
