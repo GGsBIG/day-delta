@@ -90,14 +90,6 @@ assert(totals[1].categoryID == rideID && totals[1].total == 30)
 let inc = categoryTotals(june, type: .income)
 assert(inc.count == 1 && inc[0].total == 5000)
 
-// waffleCounts: always sums to exactly 100, proportional
-let cells = waffleCounts([Decimal(150), Decimal(30)])
-assert(cells.reduce(0, +) == 100)
-assert(cells[0] == 83 && cells[1] == 17)   // 150/180=83.3 -> 83, 30/180=16.7 -> 17
-
-// waffleCounts with no spend -> all zero, no crash
-assert(waffleCounts([Decimal(0), Decimal(0)]) == [0, 0])
-
 // ---- Calendar logic ----
 
 // daysInMonth: October 2026 has 31 days, first Oct 1, last Oct 31

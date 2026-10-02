@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
 
-/// Stats page: period + type toggles, donut, breakdown list, waffle.
+/// Stats page: period + type toggles, donut, breakdown list.
 struct StatsView: View {
     let txns: [Txn]
     let categories: [Category]
@@ -46,12 +46,11 @@ struct StatsView: View {
                 } else {
                     donut
                     breakdownList
-                    waffle
                 }
             }
             .padding()
-            // One smooth animation drives the whole panel — donut arcs morph,
-            // rows fade/slide, waffle cells recolor — on any period/type change.
+            // One smooth animation drives the whole panel — donut arcs morph and
+            // rows fade/slide — on any period/type change.
             .animation(.smooth(duration: 0.45), value: period)
             .animation(.smooth(duration: 0.45), value: type)
             .sensoryFeedback(.selection, trigger: period)
@@ -109,23 +108,5 @@ struct StatsView: View {
         guard total > 0 else { return "0%" }
         let p = NSDecimalNumber(decimal: v / total).doubleValue * 100
         return "\(Int(p.rounded()))%"
-    }
-
-    // MARK: Waffle
-
-    private var waffle: some View {
-        let counts = waffleCounts(breakdown.map { $0.total })
-        // Expand into 100 colored cells by category order.
-        let cellColors: [Color] = zip(breakdown, counts).flatMap { item, n in
-            Array(repeating: color(item.categoryID), count: n)
-        }
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 10)
-        return LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(0..<100, id: \.self) { i in
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(i < cellColors.count ? cellColors[i] : Color.white.opacity(0.08))
-                    .aspectRatio(1, contentMode: .fit)
-            }
-        }
     }
 }

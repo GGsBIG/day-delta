@@ -23,7 +23,7 @@ struct Category: Codable, Identifiable, Hashable {
     var name: String
     var type: TxnType
     var icon: String?         // asset name, reuses eventIconNames
-    var colorHex: String      // "#RRGGBB", drives donut/waffle
+    var colorHex: String      // "#RRGGBB", drives the donut
     var builtin: Bool = false
 }
 
@@ -119,25 +119,6 @@ func categoryTotals(_ txns: [Txn], type: TxnType) -> [(categoryID: UUID, total: 
         .sorted { $0.total > $1.total }
 }
 
-/// Distribute `cells` across `totals` by proportion using largest-remainder, so
-/// the result always sums to exactly `cells`. Aligned to the input order.
-func waffleCounts(_ totals: [Decimal], cells: Int = 100) -> [Int] {
-    let sum = totals.reduce(0, +)
-    guard sum > 0 else { return totals.map { _ in 0 } }
-    let raw = totals.map { NSDecimalNumber(decimal: $0 / sum).doubleValue * Double(cells) }
-    var floors = raw.map { Int($0) }
-    var remainder = cells - floors.reduce(0, +)
-    let order = raw.enumerated()
-        .sorted { ($0.element - Double(Int($0.element))) > ($1.element - Double(Int($1.element))) }
-        .map { $0.offset }
-    var i = 0
-    while remainder > 0, i < order.count {
-        floors[order[i]] += 1
-        remainder -= 1
-        i += 1
-    }
-    return floors
-}
 
 /// Locale-formatted currency string, e.g. "NT$150.00".
 func formatMoney(_ amount: Decimal) -> String {
