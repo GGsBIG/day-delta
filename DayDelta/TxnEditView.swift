@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Add/edit one transaction. Mirrors EventEditView's style (monospaced, dark).
+/// Add/edit one transaction. Single non-scrolling page; Amount is focused on open
+/// so the number keyboard appears immediately.
 struct TxnEditView: View {
     let txn: Txn?
     let categories: [Category]
@@ -13,9 +14,8 @@ struct TxnEditView: View {
     @State private var categoryID: UUID?
     @State private var date: Date
     @State private var note: String
-    @State private var eventID: UUID?
-
-    private let events = EventStore.load()
+    @State private var eventID: UUID?          // preserved on edit; nil for new
+    @FocusState private var amountFocused: Bool
 
     init(txn: Txn?, categories: [Category], defaultDate: Date? = nil,
          onSave: @escaping (Txn) -> Void) {
@@ -35,34 +35,34 @@ struct TxnEditView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    Picker("Type", selection: $type) {
-                        Text("Expense").tag(TxnType.expense)
-                        Text("Income").tag(TxnType.income)
-                    }
-                    .pickerStyle(.segmented)
-                    TextField("Amount", value: $amount, format: .number)
+            VStack(alignment: .leading, spacing: 20) {
+                Picker("Type", selection: $type) {
+                    Text("Expense").tag(TxnType.expense)
+                    Text("Income").tag(TxnType.income)
+                }
+                .pickerStyle(.segmented)
+
+                field("Amount") {
+                    TextField("0", value: $amount, format: .number)
                         .keyboardType(.decimalPad)
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .focused($amountFocused)
+                        .font(.system(.title2, design: .monospaced))
                 }
-                Section("Category") {
-                    CategoryRadioGroup(categories: typeCategories, selection: $categoryID)
+                field("Date") {
+                    DatePicker("", selection: $date, displayedComponents: .date)
+                        .labelsHidden()
                 }
-                Section("Note") {
-                    TextField("Note", text: $note, axis: .vertical).lineLimit(2...5)
+                field("Category") {
+                    CategoryDropdown(categories: typeCategories, selection: $categoryID)
                 }
-                if !events.isEmpty {
-                    Section("Event") {
-                        Picker("Event", selection: $eventID) {
-                            Text("None").tag(UUID?.none)
-                            ForEach(events) { e in Text(e.title).tag(Optional(e.id)) }
-                        }
-                    }
+                field("Note") {
+                    TextField("Note", text: $note)
+                        .font(.system(.body, design: .monospaced))
                 }
+                Spacer()
             }
-            .font(.system(.body, design: .monospaced))
-            .scrollContentBackground(.hidden)
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.black)
             .navigationTitle(txn == nil ? "New" : "Edit")
             .toolbar {
@@ -73,16 +73,29 @@ struct TxnEditView: View {
                     Button("Save") { save() }
                 }
             }
-            // Reset category when switching type so it always belongs to `type`.
+            // Keep the chosen category valid for the current type.
             .onChange(of: type) { _, _ in
                 if let cid = categoryID, !typeCategories.contains(where: { $0.id == cid }) {
                     categoryID = typeCategories.first?.id
                 }
             }
             .onAppear { if categoryID == nil { categoryID = typeCategories.first?.id } }
+            .task { amountFocused = true }   // auto-open keyboard on Amount
         }
         .preferredColorScheme(.dark)
         .tint(.white)
+    }
+
+    @ViewBuilder
+    private func field<Content: View>(_ label: String,
+                                      @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.gray)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func save() {
