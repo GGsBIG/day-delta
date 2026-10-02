@@ -18,6 +18,7 @@ struct DayDeltaApp: App {
 /// the correct left/right direction both ways.
 private struct RootView: View {
     @State private var tab = 0
+    @State private var requestAddTxn = false
 
     var body: some View {
         ZStack {
@@ -27,7 +28,7 @@ private struct RootView: View {
                     ContentView()
                         .transition(.move(edge: .leading).combined(with: .opacity))
                 } else {
-                    LedgerView()
+                    LedgerView(requestAddTxn: $requestAddTxn)
                         .transition(.move(edge: .trailing).combined(with: .opacity))
                 }
             }
@@ -39,6 +40,10 @@ private struct RootView: View {
     private var tabBar: some View {
         HStack(spacing: 0) {
             tabButton(0, "Days", "calendar")
+            if tab == 1 {
+                addButton
+                    .transition(.scale.combined(with: .opacity))
+            }
             tabButton(1, "Money", "dollarsign.circle")
         }
         .padding(.top, 8)
@@ -46,6 +51,23 @@ private struct RootView: View {
         .overlay(alignment: .top) {
             Rectangle().fill(.white.opacity(0.1)).frame(height: 0.5)
         }
+    }
+
+    /// Center Add — only present on the Money tab. Its insertion/removal rides the
+    /// tab-switch `.bouncy` animation, so it springs in / collapses out silkily.
+    private var addButton: some View {
+        Button {
+            requestAddTxn = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(.black)
+                .frame(width: 56, height: 56)
+                .background(Circle().fill(.white))
+                .offset(y: -12)
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.impact, trigger: requestAddTxn)
     }
 
     private func tabButton(_ i: Int, _ title: String, _ icon: String) -> some View {

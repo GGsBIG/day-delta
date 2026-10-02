@@ -6,6 +6,7 @@ struct CategoryManagerView: View {
 
     @State private var editing: Category?
     @State private var adding = false
+    @State private var confirmingReset = false
 
     private let colors = ["#4F9DFF", "#A855F7", "#F59E0B", "#22C55E",
                           "#EF4444", "#14B8A6", "#EC4899", "#9CA3AF"]
@@ -28,6 +29,11 @@ struct CategoryManagerView: View {
                     }
                 }
             }
+            Section {
+                Button(role: .destructive) { confirmingReset = true } label: {
+                    Label("Reset to default categories", systemImage: "arrow.counterclockwise")
+                }
+            }
         }
         .font(.system(.body, design: .monospaced))
         .scrollContentBackground(.hidden)
@@ -35,6 +41,15 @@ struct CategoryManagerView: View {
         .navigationTitle("Categories")
         .sheet(item: $editing) { c in
             editSheet(c)
+        }
+        .confirmationDialog("Reset categories?", isPresented: $confirmingReset,
+                            titleVisibility: .visible) {
+            Button("Reset to defaults", role: .destructive) {
+                categories = Category.builtins
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Replaces all categories with the English defaults. Custom categories are removed.")
         }
     }
 

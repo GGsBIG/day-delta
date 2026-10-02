@@ -47,11 +47,7 @@ struct TxnEditView: View {
                     DatePicker("Date", selection: $date, displayedComponents: .date)
                 }
                 Section("Category") {
-                    Picker("Category", selection: $categoryID) {
-                        ForEach(typeCategories) { c in
-                            Text(c.name).tag(Optional(c.id))
-                        }
-                    }
+                    CategoryRadioGroup(categories: typeCategories, selection: $categoryID)
                 }
                 Section("Note") {
                     TextField("Note", text: $note, axis: .vertical).lineLimit(2...5)

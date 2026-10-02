@@ -19,10 +19,17 @@ struct LedgerView: View {
     @State private var categories: [Category] = CategoryStore.load()
     @State private var page = 0
     @State private var editingTxn: Txn?
-    @State private var addingTxn = false
     @State private var managingCategories = false
     @State private var monthAnchor = Date()
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
+
+    /// Driven by the bottom-bar Add button in RootView. Defaults to a constant so
+    /// LedgerView still compiles/previews standalone.
+    @Binding var requestAddTxn: Bool
+
+    init(requestAddTxn: Binding<Bool> = .constant(false)) {
+        _requestAddTxn = requestAddTxn
+    }
 
     var body: some View {
         NavigationStack {
@@ -45,15 +52,10 @@ struct LedgerView: View {
                     .frame(width: 180)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button { addingTxn = true } label: { Label("Add", systemImage: "plus") }
-                        Button { managingCategories = true } label: {
-                            Label("Categories", systemImage: "tag")
-                        }
-                    } label: { Image(systemName: "plus") }
+                    Button("Edit") { managingCategories = true }
                 }
             }
-            .sheet(isPresented: $addingTxn) {
+            .sheet(isPresented: $requestAddTxn) {
                 TxnEditView(txn: nil, categories: categories, defaultDate: selectedDay) { saved in
                     txns.append(saved); persist()
                 }
