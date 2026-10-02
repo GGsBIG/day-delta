@@ -144,3 +144,37 @@ func formatMoney(_ amount: Decimal) -> String {
     let code = Locale.current.currency?.identifier ?? "USD"
     return amount.formatted(.currency(code: code))
 }
+
+// MARK: - Calendar
+
+/// Start-of-day Date for every day in the month containing `ref`.
+func daysInMonth(containing ref: Date, calendar: Calendar = .current) -> [Date] {
+    guard let range = calendar.range(of: .day, in: .month, for: ref),
+          let first = calendar.date(from: calendar.dateComponents([.year, .month], from: ref))
+    else { return [] }
+    return range.compactMap { calendar.date(byAdding: .day, value: $0 - 1, to: first) }
+}
+
+/// Number of empty leading cells before day 1, honoring `calendar.firstWeekday`.
+func leadingBlanks(forMonthContaining ref: Date, calendar: Calendar = .current) -> Int {
+    guard let first = calendar.date(from: calendar.dateComponents([.year, .month], from: ref))
+    else { return 0 }
+    let weekday = calendar.component(.weekday, from: first)
+    return (weekday - calendar.firstWeekday + 7) % 7
+}
+
+/// Txns whose date is the same calendar day as `day`.
+func txnsOn(_ all: [Txn], day: Date, calendar: Calendar = .current) -> [Txn] {
+    all.filter { calendar.isDate($0.date, inSameDayAs: day) }
+}
+
+/// Category id of the single largest-amount txn (for the day's dot color).
+func dominantCategoryID(_ txns: [Txn]) -> UUID? {
+    txns.max { $0.amount < $1.amount }?.categoryID
+}
+
+/// `ref` shifted by `months`, normalized to start of day.
+func addMonths(_ months: Int, to ref: Date, calendar: Calendar = .current) -> Date {
+    let d = calendar.date(byAdding: .month, value: months, to: ref) ?? ref
+    return calendar.startOfDay(for: d)
+}
