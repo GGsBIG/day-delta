@@ -17,9 +17,10 @@ extension Color {
 struct LedgerView: View {
     @State private var txns: [Txn] = TxnStore.load()
     @State private var categories: [Category] = CategoryStore.load()
+    @State private var accounts: [Account] = AccountStore.load()
     @State private var page = 0
     @State private var editingTxn: Txn?
-    @State private var managingCategories = false
+    @State private var managing = false
     @State private var monthAnchor = Date()
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
 
@@ -52,30 +53,34 @@ struct LedgerView: View {
                     .frame(width: 180)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") { managingCategories = true }
+                    Button("Edit") { managing = true }
                 }
             }
             .sheet(isPresented: $requestAddTxn) {
-                TxnEditView(txn: nil, categories: categories, defaultDate: selectedDay) { saved in
+                TxnEditView(txn: nil, categories: categories, accounts: accounts,
+                            defaultDate: selectedDay) { saved in
                     txns.append(saved); persist()
                 }
             }
             .sheet(item: $editingTxn) { t in
-                TxnEditView(txn: t, categories: categories) { saved in
+                TxnEditView(txn: t, categories: categories, accounts: accounts) { saved in
                     if let i = txns.firstIndex(where: { $0.id == saved.id }) { txns[i] = saved }
                     persist()
                 }
             }
-            .sheet(isPresented: $managingCategories) {
-                NavigationStack { CategoryManagerView(categories: $categories) }
-                    .preferredColorScheme(.dark).tint(.white)
-                    .onDisappear { CategoryStore.save(categories) }
+            .sheet(isPresented: $managing) {
+                ManageView(categories: $categories, accounts: $accounts)
+                    .onDisappear {
+                        CategoryStore.save(categories)
+                        AccountStore.save(accounts)
+                    }
             }
         }
         // Pick up changes made by Backup import in the other tab.
         .onAppear {
             txns = TxnStore.load()
             categories = CategoryStore.load()
+            accounts = AccountStore.load()
         }
     }
 

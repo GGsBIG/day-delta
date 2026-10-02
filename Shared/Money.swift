@@ -14,6 +14,7 @@ struct Txn: Codable, Identifiable, Hashable {
     var date: Date
     var note: String?
     var eventID: UUID?        // optional link to a countdown Event
+    var accountID: UUID?      // optional payment account; nil for legacy rows
 }
 
 /// A spending/earning bucket. `builtin` categories can be renamed/recolored but
@@ -43,6 +44,42 @@ extension Category {
         .init(name: "Investment", type: .income, icon: nil, colorHex: "#F59E0B", builtin: true),
         .init(name: "Other", type: .income, icon: nil, colorHex: "#9CA3AF", builtin: true),
     ]
+}
+
+/// A payment account/method (Cash, Bank, …). Builtins can be renamed/recolored
+/// but not deleted. Mirrors Category, minus the type split.
+struct Account: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var colorHex: String
+    var builtin: Bool = false
+}
+
+extension Account {
+    static let builtins: [Account] = [
+        .init(name: "Cash", colorHex: "#22C55E", builtin: true),
+        .init(name: "Bank", colorHex: "#4F9DFF", builtin: true),
+        .init(name: "Credit Card", colorHex: "#F59E0B", builtin: true),
+    ]
+}
+
+enum AccountStore {
+    private static let key = "daydelta.accounts"
+
+    static func load() -> [Account] {
+        if let data = UserDefaults.standard.data(forKey: key),
+           let accs = try? JSONDecoder().decode([Account].self, from: data),
+           !accs.isEmpty {
+            return accs
+        }
+        save(Account.builtins)
+        return Account.builtins
+    }
+
+    static func save(_ accs: [Account]) {
+        guard let data = try? JSONEncoder().encode(accs) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
 }
 
 enum TxnStore {
@@ -174,4 +211,32 @@ func dominantCategoryID(_ txns: [Txn]) -> UUID? {
 func addMonths(_ months: Int, to ref: Date, calendar: Calendar = .current) -> Date {
     let d = calendar.date(byAdding: .month, value: months, to: ref) ?? ref
     return calendar.startOfDay(for: d)
+}
+
+// MARK: - Amount keypad
+
+enum AmountKey: Equatable {
+    case digit(Int)
+    case dot
+    case delete
+}
+
+/// Pure edit of the amount string for the custom keypad. Enforces a single
+/// decimal point and at most two fractional digits; a typed digit replaces a
+/// lone leading "0". Delete removes the last character.
+func applyAmountKey(_ s: String, _ key: AmountKey) -> String {
+    switch key {
+    case .delete:
+        return String(s.dropLast())
+    case .dot:
+        if s.contains(".") { return s }
+        return s.isEmpty ? "0." : s + "."
+    case .digit(let d):
+        if let dot = s.firstIndex(of: ".") {
+            let decimals = s.distance(from: s.index(after: dot), to: s.endIndex)
+            if decimals >= 2 { return s }
+        }
+        if s == "0" { return "\(d)" }
+        return s + "\(d)"
+    }
 }

@@ -136,6 +136,18 @@ assert(migratedCats[0].name == "Food" && migratedCats[0].id == legacyFoodID)
 assert(migratedCats[1].name == "Salary")
 assert(migratedCats[2].name == "Food")   // already English -> unchanged
 
+// applyAmountKey: build digits, single dot, max 2 decimals, delete
+assert(applyAmountKey("", .digit(1)) == "1")
+assert(applyAmountKey("1", .digit(2)) == "12")
+assert(applyAmountKey("0", .digit(5)) == "5")        // leading zero replaced
+assert(applyAmountKey("", .dot) == "0.")             // dot on empty -> 0.
+assert(applyAmountKey("0.", .dot) == "0.")           // no second dot
+assert(applyAmountKey("1.23", .digit(4)) == "1.23")  // max 2 decimals
+assert(applyAmountKey("1.2", .digit(5)) == "1.25")
+assert(applyAmountKey("12", .delete) == "1")
+assert(applyAmountKey("1", .delete) == "")
+assert(applyAmountKey("", .delete) == "")
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
