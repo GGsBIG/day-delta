@@ -212,3 +212,31 @@ func addMonths(_ months: Int, to ref: Date, calendar: Calendar = .current) -> Da
     let d = calendar.date(byAdding: .month, value: months, to: ref) ?? ref
     return calendar.startOfDay(for: d)
 }
+
+// MARK: - Amount keypad
+
+enum AmountKey: Equatable {
+    case digit(Int)
+    case dot
+    case delete
+}
+
+/// Pure edit of the amount string for the custom keypad. Enforces a single
+/// decimal point and at most two fractional digits; a typed digit replaces a
+/// lone leading "0". Delete removes the last character.
+func applyAmountKey(_ s: String, _ key: AmountKey) -> String {
+    switch key {
+    case .delete:
+        return String(s.dropLast())
+    case .dot:
+        if s.contains(".") { return s }
+        return s.isEmpty ? "0." : s + "."
+    case .digit(let d):
+        if let dot = s.firstIndex(of: ".") {
+            let decimals = s.distance(from: s.index(after: dot), to: s.endIndex)
+            if decimals >= 2 { return s }
+        }
+        if s == "0" { return "\(d)" }
+        return s + "\(d)"
+    }
+}
