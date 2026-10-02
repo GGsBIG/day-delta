@@ -98,6 +98,40 @@ assert(cells[0] == 83 && cells[1] == 17)   // 150/180=83.3 -> 83, 30/180=16.7 ->
 // waffleCounts with no spend -> all zero, no crash
 assert(waffleCounts([Decimal(0), Decimal(0)]) == [0, 0])
 
+// ---- Calendar logic ----
+
+// daysInMonth: October 2026 has 31 days, first Oct 1, last Oct 31
+let octDays = daysInMonth(containing: day(2026, 10, 15), calendar: cal)
+assert(octDays.count == 31)
+assert(ymd(octDays.first!) == (2026, 10, 1))
+assert(ymd(octDays.last!) == (2026, 10, 31))
+
+// leadingBlanks: Oct 1 2026 is a Thursday (weekday 5, Sun=1). Sunday-first -> 4 blanks.
+var sunFirst = cal
+sunFirst.firstWeekday = 1
+assert(leadingBlanks(forMonthContaining: day(2026, 10, 10), calendar: sunFirst) == 4)
+// Monday-first -> 3 blanks (Mon,Tue,Wed before Thursday).
+var monFirst = cal
+monFirst.firstWeekday = 2
+assert(leadingBlanks(forMonthContaining: day(2026, 10, 10), calendar: monFirst) == 3)
+
+// txnsOn: only the txns on that calendar day
+let calTxns = [
+    tx(100, foodID, day(2026, 10, 2)),
+    tx(50,  rideID, day(2026, 10, 2)),
+    tx(999, foodID, day(2026, 10, 3)),
+]
+assert(txnsOn(calTxns, day: day(2026, 10, 2), calendar: cal).count == 2)
+assert(txnsOn(calTxns, day: day(2026, 10, 5), calendar: cal).isEmpty)
+
+// dominantCategoryID: category of the single largest-amount txn
+assert(dominantCategoryID(calTxns) == foodID)   // 999 is the max
+assert(dominantCategoryID([]) == nil)
+
+// addMonths: forward across year end and backward across year start
+assert(ymd(addMonths(1, to: day(2026, 10, 15), calendar: cal)) == (2026, 11, 15))
+assert(ymd(addMonths(-1, to: day(2026, 1, 10), calendar: cal)) == (2025, 12, 10))
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
