@@ -4,6 +4,7 @@ import SwiftUI
 struct TxnEditView: View {
     let txn: Txn?
     let categories: [Category]
+    var defaultDate: Date? = nil
     let onSave: (Txn) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -16,14 +17,16 @@ struct TxnEditView: View {
 
     private let events = EventStore.load()
 
-    init(txn: Txn?, categories: [Category], onSave: @escaping (Txn) -> Void) {
+    init(txn: Txn?, categories: [Category], defaultDate: Date? = nil,
+         onSave: @escaping (Txn) -> Void) {
         self.txn = txn
         self.categories = categories
+        self.defaultDate = defaultDate
         self.onSave = onSave
         _type = State(initialValue: txn?.type ?? .expense)
         _amount = State(initialValue: txn?.amount)
         _categoryID = State(initialValue: txn?.categoryID)
-        _date = State(initialValue: txn?.date ?? Date())
+        _date = State(initialValue: txn?.date ?? defaultDate ?? Date())
         _note = State(initialValue: txn?.note ?? "")
         _eventID = State(initialValue: txn?.eventID)
     }
