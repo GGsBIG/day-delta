@@ -1,105 +1,133 @@
 import SwiftUI
 
-/// Add/edit one transaction. Single non-scrolling page; Amount is focused on open
-/// so the number keyboard appears immediately.
+/// Add/edit one transaction. Custom numeric keypad for the amount (no system
+/// keyboard); category and account are chosen on pushed pages.
 struct TxnEditView: View {
     let txn: Txn?
     let categories: [Category]
+    var accounts: [Account] = []
     var defaultDate: Date? = nil
     let onSave: (Txn) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var type: TxnType
-    @State private var amount: Decimal?
+    @State private var amountText: String
     @State private var categoryID: UUID?
+    @State private var accountID: UUID?
     @State private var date: Date
     @State private var note: String
-    @State private var eventID: UUID?          // preserved on edit; nil for new
-    @FocusState private var amountFocused: Bool
+    @State private var eventID: UUID?
 
-    init(txn: Txn?, categories: [Category], defaultDate: Date? = nil,
-         onSave: @escaping (Txn) -> Void) {
+    init(txn: Txn?, categories: [Category], accounts: [Account] = [],
+         defaultDate: Date? = nil, onSave: @escaping (Txn) -> Void) {
         self.txn = txn
         self.categories = categories
+        self.accounts = accounts
         self.defaultDate = defaultDate
         self.onSave = onSave
         _type = State(initialValue: txn?.type ?? .expense)
-        _amount = State(initialValue: txn?.amount)
+        _amountText = State(initialValue: txn.map { "\($0.amount)" } ?? "")
         _categoryID = State(initialValue: txn?.categoryID)
+        _accountID = State(initialValue: txn?.accountID)
         _date = State(initialValue: txn?.date ?? defaultDate ?? Date())
         _note = State(initialValue: txn?.note ?? "")
         _eventID = State(initialValue: txn?.eventID)
     }
 
     private var typeCategories: [Category] { categories.filter { $0.type == type } }
+    private var selectedCategory: Category? { categories.first { $0.id == categoryID } }
+    private var selectedAccount: Account? { accounts.first { $0.id == accountID } }
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(spacing: 16) {
+                Text(amountText.isEmpty ? "0" : amountText)
+                    .font(.system(size: 48, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.white)
+                    .minimumScaleFactor(0.4).lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+
                 Picker("Type", selection: $type) {
                     Text("Expense").tag(TxnType.expense)
                     Text("Income").tag(TxnType.income)
                 }
                 .pickerStyle(.segmented)
 
-                field("Amount") {
-                    TextField("0", value: $amount, format: .number)
-                        .keyboardType(.decimalPad)
-                        .focused($amountFocused)
-                        .font(.system(.title2, design: .monospaced))
+                row("Date") { DatePicker("", selection: $date, displayedComponents: .date).labelsHidden() }
+
+                NavigationLink {
+                    CategoryPickerView(categories: typeCategories, selection: $categoryID)
+                } label: {
+                    pickerRow("Category", color: selectedCategory.map { Color(hex: $0.colorHex) },
+                              value: selectedCategory?.name ?? "Select")
                 }
-                field("Date") {
-                    DatePicker("", selection: $date, displayedComponents: .date)
-                        .labelsHidden()
+
+                NavigationLink {
+                    AccountPickerView(accounts: accounts, selection: $accountID)
+                } label: {
+                    pickerRow("Account", color: selectedAccount.map { Color(hex: $0.colorHex) },
+                              value: selectedAccount?.name ?? "Select")
                 }
-                field("Category") {
-                    CategoryDropdown(categories: typeCategories, selection: $categoryID)
-                }
-                field("Note") {
+
+                row("Note") {
                     TextField("Note", text: $note)
+                        .multilineTextAlignment(.trailing)
                         .font(.system(.body, design: .monospaced))
                 }
-                Spacer()
+
+                Spacer(minLength: 0)
+                Keypad(amount: $amountText)
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
             .background(Color.black)
             .navigationTitle(txn == nil ? "New" : "Edit")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { save() }
-                }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { save() } }
             }
-            // Keep the chosen category valid for the current type.
             .onChange(of: type) { _, _ in
                 if let cid = categoryID, !typeCategories.contains(where: { $0.id == cid }) {
                     categoryID = typeCategories.first?.id
                 }
             }
-            .onAppear { if categoryID == nil { categoryID = typeCategories.first?.id } }
-            .task { amountFocused = true }   // auto-open keyboard on Amount
+            .onAppear {
+                if categoryID == nil { categoryID = typeCategories.first?.id }
+                if accountID == nil { accountID = accounts.first?.id }
+            }
         }
         .preferredColorScheme(.dark)
         .tint(.white)
     }
 
     @ViewBuilder
-    private func field<Content: View>(_ label: String,
-                                      @ViewBuilder _ content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.gray)
+    private func row<Content: View>(_ label: String,
+                                    @ViewBuilder _ content: () -> Content) -> some View {
+        HStack {
+            Text(label).foregroundStyle(.gray)
+            Spacer()
             content()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .font(.system(.body, design: .monospaced))
+        .padding(.vertical, 6)
+    }
+
+    private func pickerRow(_ label: String, color: Color?, value: String) -> some View {
+        HStack {
+            Text(label).foregroundStyle(.gray)
+            Spacer()
+            if let color { Circle().fill(color).frame(width: 12, height: 12) }
+            Text(value).foregroundStyle(.white)
+            Image(systemName: "chevron.right").foregroundStyle(.gray).font(.caption)
+        }
+        .font(.system(.body, design: .monospaced))
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
     }
 
     private func save() {
-        guard let amount, amount > 0, let categoryID else { return }
+        guard let amount = Decimal(string: amountText), amount > 0,
+              let categoryID else { return }
         var t = txn ?? Txn(type: type, amount: amount, categoryID: categoryID, date: date)
         t.type = type
         t.amount = amount
@@ -107,6 +135,7 @@ struct TxnEditView: View {
         t.date = date
         t.note = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
         t.eventID = eventID
+        t.accountID = accountID
         onSave(t)
         dismiss()
     }
