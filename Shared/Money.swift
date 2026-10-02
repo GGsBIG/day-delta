@@ -61,6 +61,20 @@ enum TxnStore {
     }
 }
 
+/// Renames legacy Chinese built-in category names to English. Names that aren't
+/// in the map (already English, or custom) are left untouched; id/type/color kept.
+func migrateCategoryNames(_ cats: [Category]) -> [Category] {
+    let map = ["餐飲": "Food", "交通": "Transport", "購物": "Shopping",
+               "娛樂": "Entertainment", "居住": "Housing", "醫療": "Health",
+               "其他": "Other", "薪資": "Salary", "獎金": "Bonus", "投資": "Investment"]
+    return cats.map { c in
+        guard let english = map[c.name] else { return c }
+        var m = c
+        m.name = english
+        return m
+    }
+}
+
 enum CategoryStore {
     private static let key = "daydelta.categories"
 
@@ -69,7 +83,9 @@ enum CategoryStore {
         if let data = UserDefaults.standard.data(forKey: key),
            let cats = try? JSONDecoder().decode([Category].self, from: data),
            !cats.isEmpty {
-            return cats
+            let migrated = migrateCategoryNames(cats)
+            if migrated != cats { save(migrated) }   // one-time: persist English names
+            return migrated
         }
         save(Category.builtins)
         return Category.builtins

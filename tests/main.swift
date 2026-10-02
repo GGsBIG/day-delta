@@ -124,6 +124,18 @@ assert(dominantCategoryID([]) == nil)
 assert(ymd(addMonths(1, to: day(2026, 10, 15), calendar: cal)) == (2026, 11, 15))
 assert(ymd(addMonths(-1, to: day(2026, 1, 10), calendar: cal)) == (2025, 12, 10))
 
+// migrateCategoryNames: legacy Chinese builtin names -> English; ids kept; English untouched
+let legacyFoodID = UUID()
+let legacyCats = [
+    Category(id: legacyFoodID, name: "餐飲", type: .expense, icon: nil, colorHex: "#4F9DFF", builtin: true),
+    Category(name: "薪資", type: .income, icon: nil, colorHex: "#22C55E", builtin: true),
+    Category(name: "Food", type: .expense, icon: nil, colorHex: "#4F9DFF", builtin: true),
+]
+let migratedCats = migrateCategoryNames(legacyCats)
+assert(migratedCats[0].name == "Food" && migratedCats[0].id == legacyFoodID)
+assert(migratedCats[1].name == "Salary")
+assert(migratedCats[2].name == "Food")   // already English -> unchanged
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
