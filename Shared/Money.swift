@@ -60,6 +60,9 @@ extension Account {
         .init(name: "Cash", colorHex: "#22C55E", builtin: true),
         .init(name: "Bank", colorHex: "#4F9DFF", builtin: true),
         .init(name: "Credit Card", colorHex: "#F59E0B", builtin: true),
+        .init(name: "Cathay United Bank", colorHex: "#15803D", builtin: true),
+        .init(name: "CTBC Bank", colorHex: "#2563EB", builtin: true),
+        .init(name: "Fubon Bank", colorHex: "#CA8A04", builtin: true),
     ]
 }
 
@@ -70,7 +73,10 @@ enum AccountStore {
         if let data = UserDefaults.standard.data(forKey: key),
            let accs = try? JSONDecoder().decode([Account].self, from: data),
            !accs.isEmpty {
-            return accs
+            // Append any built-in (e.g. the bank presets) missing from an older save.
+            let merged = accs + Account.builtins.filter { b in !accs.contains { $0.name == b.name } }
+            if merged != accs { save(merged) }
+            return merged
         }
         save(Account.builtins)
         return Account.builtins
@@ -246,5 +252,41 @@ func applyAmountKey(_ s: String, _ key: AmountKey) -> String {
 func accountBalance(_ txns: [Txn], accountID: UUID?) -> Decimal {
     txns.filter { $0.accountID == accountID }.reduce(Decimal(0)) {
         $0 + ($1.type == .income ? $1.amount : -$1.amount)
+    }
+}
+
+/// One sample on the running-balance curve.
+struct BalancePoint: Identifiable, Hashable {
+    let date: Date
+    let balance: Decimal
+    var id: Date { date }
+    var doubleValue: Double { NSDecimalNumber(decimal: balance).doubleValue }
+}
+
+/// Running balance sampled across the period. `scope` nil = every account (grand
+/// total); otherwise just that account. Week/month sample daily, year monthly;
+/// each point is the cumulative balance of every txn on or before that day.
+/// ponytail: recomputes the full cumulative per bucket (O(points·txns)); fine for
+/// a personal ledger, sort-and-scan if it ever grows large.
+func balanceSeries(_ txns: [Txn], scope: UUID?, period: StatPeriod,
+                   now: Date = .now, calendar: Calendar = .current) -> [BalancePoint] {
+    let scoped = scope == nil ? txns : txns.filter { $0.accountID == scope }
+    let signed = scoped.map { (date: $0.date, amount: $0.type == .income ? $0.amount : -$0.amount) }
+    let today = calendar.startOfDay(for: now)
+
+    let (count, component): (Int, Calendar.Component) = {
+        switch period {
+        case .week:  return (7, .day)
+        case .month: return (30, .day)
+        case .year:  return (12, .month)
+        }
+    }()
+
+    return (0..<count).reversed().compactMap { back -> BalancePoint? in
+        guard let bucket = calendar.date(byAdding: component, value: -back, to: today) else { return nil }
+        let start = calendar.startOfDay(for: bucket)
+        guard let cutoff = calendar.date(byAdding: .day, value: 1, to: start) else { return nil }
+        let bal = signed.filter { $0.date < cutoff }.reduce(Decimal(0)) { $0 + $1.amount }
+        return BalancePoint(date: start, balance: bal)
     }
 }

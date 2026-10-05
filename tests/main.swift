@@ -160,6 +160,15 @@ assert(accountBalance(balTxns, accountID: accA) == 700)
 assert(accountBalance(balTxns, accountID: accB) == -50)
 assert(accountBalance(balTxns, accountID: nil) == -20)
 
+// balanceSeries: 7 daily cumulative points ending today; accA climbs 1000 -> 700
+let series = balanceSeries(balTxns, scope: accA, period: .week, now: day(2026, 10, 5), calendar: cal)
+assert(series.count == 7)
+assert(series.first(where: { ymd($0.date) == (2026, 10, 1) })?.balance == 1000)
+assert(series.last?.balance == 700)
+// grand total (scope nil) on 10/3 includes the unassigned -20: 1000-300-50-20 = 630
+let allSeries = balanceSeries(balTxns, scope: nil, period: .week, now: day(2026, 10, 5), calendar: cal)
+assert(allSeries.last?.balance == 630)
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
