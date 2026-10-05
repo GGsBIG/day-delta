@@ -1,5 +1,6 @@
 import SwiftUI
 import Charts
+import UIKit
 
 /// Accounts overview, laid out like a modern wallet dashboard: greeting + account
 /// switcher on top, the selected balance with a period-change pill, Week/Month/Year
@@ -13,6 +14,12 @@ struct AccountsView: View {
     @State private var selected: UUID? = nil
     @State private var period: StatPeriod = .month
     @State private var showingManage = false
+
+    /// Background base color (shared with GrainientBackground via AppStorage).
+    @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
+    private var bgColor: Binding<Color> {
+        Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() })
+    }
 
     private enum Palette {
         static let text = Color.white
@@ -90,6 +97,9 @@ struct AccountsView: View {
                     .foregroundStyle(Palette.text).lineLimit(1)
             }
             Spacer()
+            ColorPicker("Background color", selection: bgColor, supportsOpacity: false)
+                .labelsHidden()
+                .frame(width: 42, height: 42)
             Menu {
                 Picker("Account", selection: $selected) {
                     Text("All accounts").tag(UUID?.none)
@@ -302,34 +312,69 @@ private struct AvatarStack: View {
 /// ponytail: gradient-blob approximation of the Grainient shader — the Metal
 /// toolchain isn't installed here. Swap for a `.colorEffect` shader if it is.
 struct GrainientBackground: View {
-    private typealias Blob = (hex: String, base: (Double, Double), amp: (Double, Double),
-                              speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
-    private let blobs: [Blob] = [
-        ("#FFCEFD", (0.30, 0.24), (0.18, 0.12), 0.22, 0.0, 520, .screen),
-        ("#B497CF", (0.76, 0.62), (0.16, 0.14), 0.17, 1.5, 480, .screen),
-        ("#5227FF", (0.50, 0.92), (0.20, 0.12), 0.20, 3.0, 440, .screen),
-        ("#1E1248", (0.20, 0.80), (0.14, 0.16), 0.15, 4.2, 420, .multiply),
+    /// Shared base color, chosen on the Accounts page. Every tab reads this key,
+    /// so recoloring there recolors the whole app's backdrop.
+    @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
+
+    private typealias Geo = (base: (Double, Double), amp: (Double, Double),
+                             speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
+    private let geos: [Geo] = [
+        ((0.30, 0.24), (0.18, 0.12), 0.22, 0.0, 520, .screen),
+        ((0.76, 0.62), (0.16, 0.14), 0.17, 1.5, 480, .screen),
+        ((0.50, 0.92), (0.20, 0.12), 0.20, 3.0, 440, .screen),
+        ((0.20, 0.80), (0.14, 0.16), 0.15, 4.2, 420, .multiply),
     ]
 
     var body: some View {
+        let p = palette(Color(hex: bgHex))
         TimelineView(.animation) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             ZStack {
-                LinearGradient(colors: [Color(hex: "#5227FF"), Color(hex: "#2A1A66")],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-                ForEach(blobs.indices, id: \.self) { i in
-                    let b = blobs[i]
-                    let x = b.base.0 + b.amp.0 * sin(t * b.speed + b.phase)
-                    let y = b.base.1 + b.amp.1 * cos(t * b.speed * 0.9 + b.phase)
-                    RadialGradient(colors: [Color(hex: b.hex), Color(hex: b.hex).opacity(0)],
-                                   center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: b.r)
-                        .blendMode(b.blend)
+                LinearGradient(colors: [p.top, p.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+                ForEach(geos.indices, id: \.self) { i in
+                    let g = geos[i]
+                    let x = g.base.0 + g.amp.0 * sin(t * g.speed + g.phase)
+                    let y = g.base.1 + g.amp.1 * cos(t * g.speed * 0.9 + g.phase)
+                    RadialGradient(colors: [p.blobs[i], p.blobs[i].opacity(0)],
+                                   center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: g.r)
+                        .blendMode(g.blend)
                 }
             }
             .contrast(1.5)
             .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
             .ignoresSafeArea()
         }
+    }
+
+    /// Derive the base gradient + four blob colors from one chosen color by
+    /// shifting hue/saturation/brightness around it.
+    private func palette(_ base: Color) -> (top: Color, bottom: Color, blobs: [Color]) {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(base).getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        let S = Double(s), B = Double(b)
+        func c(_ dh: Double, _ sat: Double, _ bri: Double) -> Color {
+            var hue = (Double(h) + dh / 360).truncatingRemainder(dividingBy: 1); if hue < 0 { hue += 1 }
+            return Color(hue: hue, saturation: min(max(sat, 0), 1), brightness: min(max(bri, 0), 1))
+        }
+        return (
+            top: c(0, S, max(0.28, B * 0.8)),
+            bottom: c(-8, min(1, S + 0.1), max(0.12, B * 0.35)),
+            blobs: [
+                c(12, S * 0.45, 0.99),                      // light tint
+                c(28, S * 0.8, min(1, B + 0.05)),           // hue-shifted
+                c(0, S, B),                                 // the chosen color
+                c(-18, min(1, S + 0.1), max(0.1, B * 0.3)), // deep shadow
+            ]
+        )
+    }
+}
+
+private extension Color {
+    /// "#RRGGBB" for persisting a chosen color. Pairs with `Color(hex:)`.
+    func toHex() -> String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X", Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
     }
 }
 
