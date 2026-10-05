@@ -86,7 +86,7 @@ struct AccountsView: View {
             AvatarStack(accounts: accounts, highlight: selected)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Welcome back").font(.caption).foregroundStyle(Palette.textSoft.opacity(0.8))
-                Text(selectedName).font(.system(.headline, design: .rounded)).bold()
+                Text(selectedName).font(.system(.headline, design: .rounded))
                     .foregroundStyle(Palette.text).lineLimit(1)
             }
             Spacer()
@@ -135,7 +135,7 @@ struct AccountsView: View {
                     .font(.system(.subheadline, design: .rounded)).foregroundStyle(Palette.textSoft)
                     .labelStyle(.titleAndIcon)
                 Text(String(format: "%+.2f%%", periodPct))
-                    .font(.system(.caption, design: .rounded).bold()).foregroundStyle(.white)
+                    .font(.system(.caption, design: .rounded)).foregroundStyle(.white)
                     .padding(.vertical, 5).padding(.horizontal, 10)
                     .background(Capsule().fill(LinearGradient(
                         colors: [Palette.accent, Palette.accent2],
@@ -153,7 +153,7 @@ struct AccountsView: View {
                 let on = p == period
                 Button { period = p } label: {
                     Text(p.label)
-                        .font(.system(.subheadline, design: .rounded)).fontWeight(.medium)
+                        .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(on ? .white : Palette.text)
                         .padding(.vertical, 11).padding(.horizontal, 22)
                         .background(Capsule().fill(on
@@ -175,7 +175,7 @@ struct AccountsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(periodTitle).font(.system(.title3, design: .rounded)).bold().foregroundStyle(Palette.text)
+                    Text(periodTitle).font(.system(.title3, design: .rounded)).foregroundStyle(Palette.text)
                     Text(rangeText).font(.caption).foregroundStyle(Palette.textSoft.opacity(0.8))
                 }
                 Spacer()
@@ -192,7 +192,7 @@ struct AccountsView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatMoney(series.last?.balance ?? balance))
-                        .font(.system(.title, design: .rounded).weight(.light)).tracking(-0.8)
+                        .font(.system(.title, design: .rounded)).tracking(-0.8)
                         .foregroundStyle(Palette.text)
                         .minimumScaleFactor(0.5).lineLimit(1)
                         .contentTransition(.numericText(value: (series.last?.doubleValue ?? 0)))
@@ -220,7 +220,7 @@ struct AccountsView: View {
     private func miniStat(_ title: String, _ value: Decimal) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.system(.subheadline, design: .rounded)).foregroundStyle(Palette.textSoft)
-            Text(formatMoney(value)).font(.system(.title3, design: .rounded).weight(.light)).tracking(-0.5)
+            Text(formatMoney(value)).font(.system(.title3, design: .rounded)).tracking(-0.5)
                 .foregroundStyle(Palette.text).minimumScaleFactor(0.5).lineLimit(1)
                 .contentTransition(.numericText(value: (value as NSDecimalNumber).doubleValue))
         }
@@ -284,7 +284,7 @@ private struct AvatarStack: View {
     private func avatar(fill: Color, text: String) -> some View {
         Circle().fill(fill)
             .frame(width: size, height: size)
-            .overlay(Text(text).font(.system(size: 15, weight: .bold, design: .rounded))
+            .overlay(Text(text).font(.system(size: 15, design: .rounded))
                 .foregroundStyle(.white).minimumScaleFactor(0.6).lineLimit(1))
             .overlay(Circle().strokeBorder(.white.opacity(0.85), lineWidth: 2.5))
     }

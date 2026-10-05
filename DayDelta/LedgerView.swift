@@ -34,7 +34,8 @@ struct LedgerView: View {
     var body: some View {
         NavigationStack {
             ledgerList
-            .background(.clear)
+            .background(GrainientBackground().ignoresSafeArea())
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationTitle("Ledger")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

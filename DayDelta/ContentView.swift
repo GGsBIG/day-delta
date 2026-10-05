@@ -70,7 +70,8 @@ struct ContentView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .background(.clear)
+            .background(GrainientBackground().ignoresSafeArea())
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationTitle("DayDelta")
             .navigationDestination(item: $viewing) { event in
                 MemoryDetailView(event: event, onUpdate: updateEvent)
@@ -235,7 +236,7 @@ struct EventRow: View {
                 }
                 Spacer()
                 Text(t.number)
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                    .font(.system(size: 44, design: .rounded))
                     .foregroundStyle(.white)
             }
             Text(dateLabel(target))

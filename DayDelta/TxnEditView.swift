@@ -42,7 +42,7 @@ struct TxnEditView: View {
         NavigationStack {
             VStack(spacing: 16) {
                 Text(amountText.isEmpty ? "0" : amountText)
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(.system(size: 48, design: .rounded))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.4).lineLimit(1)
                     .frame(maxWidth: .infinity)

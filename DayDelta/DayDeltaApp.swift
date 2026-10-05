@@ -40,6 +40,7 @@ private struct RootView: View {
         .safeAreaInset(edge: .bottom) { tabBar }
         .sensoryFeedback(.selection, trigger: tab)
         .fontDesign(.rounded)
+        .fontWeight(.thin)
         // Swipe left/right anywhere to move between tabs.
         .simultaneousGesture(
             DragGesture(minimumDistance: 24)

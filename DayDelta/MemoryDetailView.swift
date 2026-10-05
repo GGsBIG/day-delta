@@ -35,7 +35,7 @@ struct MemoryDetailView: View {
                         .foregroundStyle(.gray)
                 }
                 Text(t.number)
-                    .font(.system(size: 96, weight: .bold, design: .rounded))
+                    .font(.system(size: 96, design: .rounded))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.3).lineLimit(1)
                 Text(event.label ?? t.subtitle)
