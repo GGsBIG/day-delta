@@ -24,7 +24,7 @@ struct AccountManagerView: View {
         }
         .font(.system(.body, design: .rounded))
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(GrainientBackground())
         .navigationTitle("Accounts")
         .sheet(item: $editing) { a in
             AccountEditSheet(account: a, colors: colors) { saved in
@@ -79,7 +79,7 @@ private struct AccountEditSheet: View {
             }
             .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(GrainientBackground())
             .navigationTitle(account.name.isEmpty ? "New account" : account.name)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

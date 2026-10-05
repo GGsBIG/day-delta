@@ -80,7 +80,7 @@ struct TxnEditView: View {
                 Keypad(amount: $amountText)
             }
             .padding(.horizontal)
-            .background(Color.black)
+            .background(GrainientBackground())
             .navigationTitle(txn == nil ? "New" : "Edit")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

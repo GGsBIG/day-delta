@@ -37,7 +37,7 @@ struct CategoryManagerView: View {
         }
         .font(.system(.body, design: .rounded))
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(GrainientBackground())
         .navigationTitle("Categories")
         .sheet(item: $editing) { c in
             editSheet(c)
@@ -110,7 +110,7 @@ private struct CategoryEditSheet: View {
             }
             .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(GrainientBackground())
             .navigationTitle(category.name.isEmpty ? "New category" : category.name)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }

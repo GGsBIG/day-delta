@@ -101,7 +101,7 @@ struct EventEditView: View {
             }
             .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(GrainientBackground())
             .navigationTitle(event == nil ? "New" : "Edit")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

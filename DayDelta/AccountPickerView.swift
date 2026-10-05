@@ -22,12 +22,12 @@ struct AccountPickerView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .listRowBackground(Color.black)
+                .listRowBackground(Color.clear)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color.black)
+        .background(GrainientBackground())
         .font(.system(.body, design: .rounded))
         .foregroundStyle(.white)
         .navigationTitle("Account")

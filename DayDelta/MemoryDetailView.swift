@@ -14,7 +14,7 @@ struct MemoryDetailView: View {
         let t = countDisplay(delta: dayDelta(to: target), mode: event.mode)
 
         ZStack {
-            Color.black.ignoresSafeArea()
+            GrainientBackground().ignoresSafeArea()
             if let photoFile = event.photoFile, let ui = PhotoStore.load(photoFile) {
                 Image(uiImage: ui)
                     .resizable().scaledToFill()

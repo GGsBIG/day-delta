@@ -23,7 +23,7 @@ struct ManageView: View {
                     AccountManagerView(accounts: $accounts)
                 }
             }
-            .background(Color.black)
+            .background(GrainientBackground())
         }
         .preferredColorScheme(.dark)
         .tint(.white)
