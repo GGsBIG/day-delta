@@ -50,22 +50,26 @@ private struct RootView: View {
         }
     }
 
+    /// Floating honey-themed pill: circular icon buttons, the active one on an
+    /// amber disc. Translucent material so it reads on both the light Accounts
+    /// page and the dark tabs.
     private var tabBar: some View {
-        HStack(spacing: 0) {
-            tabButton(0, "Accounts", "creditcard")
-            tabButton(1, "Ledger", "calendar.day.timeline.left")
+        HStack(spacing: 6) {
+            tabButton(0, "creditcard")
+            tabButton(1, "calendar.day.timeline.left")
             if tab == 1 {
                 addButton
                     .transition(.scale.combined(with: .opacity))
             }
-            tabButton(2, "Stats", "chart.pie")
-            tabButton(3, "Days", "calendar")
+            tabButton(2, "chart.pie")
+            tabButton(3, "calendar")
         }
-        .padding(.top, 8)
-        .background(.black)
-        .overlay(alignment: .top) {
-            Rectangle().fill(.white.opacity(0.1)).frame(height: 0.5)
-        }
+        .padding(6)
+        .background(Capsule().fill(.ultraThinMaterial))
+        .overlay(Capsule().strokeBorder(Color(hex: "#F59E0B").opacity(0.25)))
+        .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+        .padding(.horizontal, 32)
+        .padding(.bottom, 4)
     }
 
     /// Center Add — only present on the Ledger tab. Its insertion/removal rides the
@@ -75,30 +79,30 @@ private struct RootView: View {
             requestAddTxn = true
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(.black)
-                .frame(width: 56, height: 56)
-                .background(Circle().fill(.white))
-                .offset(y: -12)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(Color(hex: "#78350F"))
+                .frame(width: 52, height: 52)
+                .background(Circle().fill(LinearGradient(
+                    colors: [Color(hex: "#FBBF24"), Color(hex: "#F59E0B")],
+                    startPoint: .top, endPoint: .bottom)))
+                .offset(y: -10)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact, trigger: requestAddTxn)
     }
 
-    private func tabButton(_ i: Int, _ title: String, _ icon: String) -> some View {
+    private func tabButton(_ i: Int, _ icon: String) -> some View {
         Button {
             guard tab != i else { return }
             prevTab = tab
             withAnimation(.bouncy(duration: 0.5)) { tab = i }
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon).font(.system(size: 20))
-                Text(title).font(.system(.caption2, design: .monospaced))
-            }
-            .foregroundStyle(tab == i ? Color.white : .gray)
-            .scaleEffect(tab == i ? 1.0 : 0.9)
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(tab == i ? Color(hex: "#78350F") : .primary.opacity(0.65))
+                .frame(width: 50, height: 50)
+                .background(Circle().fill(tab == i ? Color(hex: "#F59E0B") : .clear))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .animation(.smooth(duration: 0.3), value: tab)
