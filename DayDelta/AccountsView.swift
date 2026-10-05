@@ -93,7 +93,7 @@ struct AccountsView: View {
             AvatarStack(accounts: accounts, highlight: selected)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Welcome back").font(.caption).foregroundStyle(Palette.textSoft.opacity(0.8))
-                Text(selectedName).font(.system(.headline, design: .rounded))
+                Text(selectedName).font(.system(.headline, design: .rounded)).fontWeight(.bold)
                     .foregroundStyle(Palette.text).lineLimit(1)
             }
             Spacer()
@@ -130,7 +130,7 @@ struct AccountsView: View {
     private var balanceBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
-                Text("Spend Account").font(.system(.title3, design: .rounded))
+                Text("Spend Account").font(.system(.title3, design: .rounded)).fontWeight(.bold)
                     .foregroundStyle(Palette.textSoft)
                 Spacer()
             }
@@ -185,7 +185,7 @@ struct AccountsView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(periodTitle).font(.system(.title3, design: .rounded)).foregroundStyle(Palette.text)
+                    Text(periodTitle).font(.system(.title3, design: .rounded)).fontWeight(.bold).foregroundStyle(Palette.text)
                     Text(rangeText).font(.caption).foregroundStyle(Palette.textSoft.opacity(0.8))
                 }
                 Spacer()
@@ -277,32 +277,24 @@ private struct AvatarStack: View {
         let overflow = accounts.count - visible.count
         HStack(spacing: -14) {
             ForEach(Array(visible.enumerated()), id: \.element.id) { i, a in
-                avatar(fill: Color(hex: a.colorHex), text: initials(a.name))
+                AccountAvatar(account: a, size: size)
                     .opacity(highlight == nil || highlight == a.id ? 1 : 0.5)
                     .scaleEffect(highlight == a.id ? 1.12 : 1)
                     .zIndex(highlight == a.id ? 100 : Double(max - i))
             }
             if overflow > 0 {
-                avatar(fill: Color(white: 0.22), text: "+\(overflow)")
+                Color(white: 0.22)
+                    .frame(width: size, height: size)
+                    .overlay(Text("+\(overflow)")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white).minimumScaleFactor(0.6).lineLimit(1))
+                    .clipShape(Circle())
+                    .overlay(Circle().strokeBorder(.white.opacity(0.85), lineWidth: 2.5))
                     .contentTransition(.numericText())
                     .zIndex(0)
             }
         }
         .animation(.bouncy(duration: 0.4), value: highlight)
-    }
-
-    private func avatar(fill: Color, text: String) -> some View {
-        Circle().fill(fill)
-            .frame(width: size, height: size)
-            .overlay(Text(text).font(.system(size: 15, design: .rounded))
-                .foregroundStyle(.white).minimumScaleFactor(0.6).lineLimit(1))
-            .overlay(Circle().strokeBorder(.white.opacity(0.85), lineWidth: 2.5))
-    }
-
-    private func initials(_ name: String) -> String {
-        let words = name.split(separator: " ")
-        if words.count >= 2 { return (String(words[0].prefix(1)) + words[1].prefix(1)).uppercased() }
-        return String(name.prefix(2)).uppercased()
     }
 }
 

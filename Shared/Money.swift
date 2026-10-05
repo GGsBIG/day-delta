@@ -53,6 +53,8 @@ struct Account: Codable, Identifiable, Hashable {
     var name: String
     var colorHex: String
     var builtin: Bool = false
+    /// Optional custom avatar image (PhotoStore filename). nil = colored initials.
+    var photoFile: String? = nil
 }
 
 extension Account {
