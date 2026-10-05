@@ -73,7 +73,7 @@ struct LedgerView: View {
 
     private var ledgerList: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 24) {
                 MonthCalendarView(
                     monthAnchor: monthAnchor,
                     txns: txns,
@@ -82,11 +82,10 @@ struct LedgerView: View {
                     onPrevMonth: { changeMonth(-1) },
                     onNextMonth: { changeMonth(1) }
                 )
-                .padding(.top, 8)
 
                 selectedDayList
             }
-            .padding(.horizontal)
+            .padding()
         }
         .scrollContentBackground(.hidden)
     }
