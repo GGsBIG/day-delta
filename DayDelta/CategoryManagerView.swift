@@ -58,7 +58,7 @@ struct CategoryManagerView: View {
             Circle().fill(Color(hex: c.colorHex)).frame(width: 14, height: 14)
             Text(c.name.isEmpty ? "(unnamed)" : c.name)
             Spacer()
-            if c.builtin { Text("built-in").foregroundStyle(.gray).font(.caption) }
+            if c.builtin { Text("built-in").foregroundStyle(Color.appInk.opacity(0.6)).font(.caption) }
         }
     }
 
@@ -107,6 +107,13 @@ private struct CategoryEditSheet: View {
                     }
                 }
                 Section("Icon") { IconPicker(selection: $category.icon) }
+                if category.type == .expense {
+                    Section {
+                        Toggle("Count as investment / savings", isOn: $category.isInvestment)
+                    } footer: {
+                        Text("Money here (e.g. buying stocks) counts as saved, not spent, in \"You've saved this month\".")
+                    }
+                }
             }
             .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)

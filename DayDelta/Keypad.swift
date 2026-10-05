@@ -30,7 +30,7 @@ struct Keypad: View {
         } label: {
             Text(label(key))
                 .font(.system(.title2, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.appInk)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(RoundedRectangle(cornerRadius: UI.radius).fill(Color(white: 0.12)))

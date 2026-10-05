@@ -43,7 +43,7 @@ struct TxnEditView: View {
             VStack(spacing: 16) {
                 Text(amountText.isEmpty ? "0" : amountText)
                     .font(.system(size: 48, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.appInk)
                     .minimumScaleFactor(0.4).lineLimit(1)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 8)
@@ -104,7 +104,7 @@ struct TxnEditView: View {
     private func row<Content: View>(_ label: String,
                                     @ViewBuilder _ content: () -> Content) -> some View {
         HStack {
-            Text(label).foregroundStyle(.gray)
+            Text(label).foregroundStyle(Color.appInk.opacity(0.6))
             Spacer()
             content()
         }
@@ -114,11 +114,11 @@ struct TxnEditView: View {
 
     private func pickerRow(_ label: String, color: Color?, value: String) -> some View {
         HStack {
-            Text(label).foregroundStyle(.gray)
+            Text(label).foregroundStyle(Color.appInk.opacity(0.6))
             Spacer()
             if let color { Circle().fill(color).frame(width: 12, height: 12) }
-            Text(value).foregroundStyle(.white)
-            Image(systemName: "chevron.right").foregroundStyle(.gray).font(.caption)
+            Text(value).foregroundStyle(Color.appInk)
+            Image(systemName: "chevron.right").foregroundStyle(Color.appInk.opacity(0.6)).font(.caption)
         }
         .font(.system(.body, design: .rounded))
         .padding(.vertical, 6)

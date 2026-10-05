@@ -20,6 +20,8 @@ private struct RootView: View {
     @State private var prevTab = 0
     @State private var requestAddTxn = false
     @Namespace private var tabNS
+    /// Observed so the tab bar's ink recomputes when the background color changes.
+    @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
 
     /// Horizontal slide whose direction follows whether we moved to a higher or
     /// lower tab index — new page in from the far side, old page out the near side.
@@ -31,6 +33,7 @@ private struct RootView: View {
     }
 
     var body: some View {
+        let _ = bgHex   // subscribe to background-color changes so ink updates
         ZStack {
             GrainientBackground().ignoresSafeArea()
             content
@@ -85,7 +88,7 @@ private struct RootView: View {
         }
         .padding(6)
         .background(RoundedRectangle(cornerRadius: UI.radius).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(.white.opacity(0.25)))
+        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(Color.appInk.opacity(0.25)))
         .shadow(color: .black.opacity(0.3), radius: 14, y: 6)
         .padding(.horizontal, 32)
         .padding(.bottom, 4)
@@ -104,7 +107,6 @@ private struct RootView: View {
                 .background(Circle().fill(LinearGradient(
                     colors: [Color(hex: "#FFCEFD"), Color(hex: "#5227FF")],
                     startPoint: .topLeading, endPoint: .bottomTrailing)))
-                .offset(y: -10)
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact, trigger: requestAddTxn)
@@ -118,7 +120,7 @@ private struct RootView: View {
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(tab == i ? .white : .white.opacity(0.55))
+                .foregroundStyle(tab == i ? .white : Color.appInk.opacity(0.55))
                 .frame(width: 50, height: 50)
                 .background {
                     if tab == i {

@@ -220,32 +220,32 @@ struct EventRow: View {
                         if let icon = event.icon {
                             Image(icon).renderingMode(.template).resizable().scaledToFit()
                                 .frame(width: 14, height: 14)
-                                .foregroundStyle(.gray)
+                                .foregroundStyle(Color.appInk.opacity(0.6))
                         }
                         Text(event.title)
                             .font(.system(.subheadline, design: .rounded))
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(Color.appInk.opacity(0.6))
                         if event.pinned {
                             Image(systemName: "pin.fill")
-                                .font(.caption2).foregroundStyle(.gray)
+                                .font(.caption2).foregroundStyle(Color.appInk.opacity(0.6))
                         }
                     }
                     Text(event.label ?? t.subtitle)
                         .font(.system(.caption, design: .rounded))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Color.appInk.opacity(0.6))
                 }
                 Spacer()
                 Text(t.number)
                     .font(.system(size: 44, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.appInk)
             }
             Text(dateLabel(target))
                 .font(.system(.caption2, design: .rounded))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.appInk.opacity(0.6))
             if delta <= 0, event.mode == .dayCounter, let m = nextMilestone(dayCount: -delta + 1) {
                 Text("next: \(m.target) · \(m.daysAway) days")
                     .font(.system(.caption2, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.appInk.opacity(0.6))
             }
         }
         .padding(.vertical, 6)

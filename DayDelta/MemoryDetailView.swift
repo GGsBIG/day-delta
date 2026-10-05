@@ -28,22 +28,22 @@ struct MemoryDetailView: View {
                 HStack(spacing: 8) {
                     if let icon = event.icon {
                         Image(icon).renderingMode(.template).resizable().scaledToFit()
-                            .frame(width: 20, height: 20).foregroundStyle(.gray)
+                            .frame(width: 20, height: 20).foregroundStyle(Color.appInk.opacity(0.6))
                     }
                     Text(event.title)
                         .font(.system(.title3, design: .rounded))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(Color.appInk.opacity(0.6))
                 }
                 Text(t.number)
                     .font(.system(size: 96, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.appInk)
                     .minimumScaleFactor(0.3).lineLimit(1)
                 Text(event.label ?? t.subtitle)
                     .font(.system(.title2, design: .rounded))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(Color.appInk.opacity(0.6))
                 Text(dateLabel(target))
                     .font(.system(.footnote, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.appInk.opacity(0.6))
                 if let note = event.note {
                     Text(note)
                         .font(.system(.body, design: .rounded))

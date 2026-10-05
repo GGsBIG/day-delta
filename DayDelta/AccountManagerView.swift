@@ -44,7 +44,7 @@ struct AccountManagerView: View {
             AccountAvatar(account: a, size: 28)
             Text(a.name.isEmpty ? "(unnamed)" : a.name)
             Spacer()
-            if a.builtin { Text("built-in").foregroundStyle(.gray).font(.caption) }
+            if a.builtin { Text("built-in").foregroundStyle(Color.appInk.opacity(0.6)).font(.caption) }
         }
     }
 
@@ -149,7 +149,7 @@ struct AccountAvatar: View {
                 Color(hex: account.colorHex)
                     .overlay(Text(initials(account.name))
                         .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white).minimumScaleFactor(0.6).lineLimit(1))
+                        .foregroundStyle(Color.appInk).minimumScaleFactor(0.6).lineLimit(1))
             }
         }
         .frame(width: size, height: size)

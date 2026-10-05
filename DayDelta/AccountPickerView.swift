@@ -17,7 +17,7 @@ struct AccountPickerView: View {
                         Circle().fill(Color(hex: a.colorHex)).frame(width: 12, height: 12)
                         Text(a.name)
                         Spacer()
-                        if selection == a.id { Image(systemName: "checkmark").foregroundStyle(.white) }
+                        if selection == a.id { Image(systemName: "checkmark").foregroundStyle(Color.appInk) }
                     }
                     .contentShape(Rectangle())
                 }
@@ -29,7 +29,7 @@ struct AccountPickerView: View {
         .scrollContentBackground(.hidden)
         .background(GrainientBackground())
         .font(.system(.body, design: .rounded))
-        .foregroundStyle(.white)
+        .foregroundStyle(Color.appInk)
         .navigationTitle("Account")
     }
 }

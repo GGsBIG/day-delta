@@ -3,6 +3,26 @@ import SwiftUI
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
 
+/// Relative luminance (WCAG) of a "#RRGGBB" color, 0 (black) … 1 (white).
+func relativeLuminance(_ hex: String) -> Double {
+    let s = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
+    guard s.count == 6, let v = UInt64(s, radix: 16) else { return 0 }
+    func lin(_ c: Double) -> Double { c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+    let r = lin(Double((v >> 16) & 0xFF) / 255)
+    let g = lin(Double((v >> 8) & 0xFF) / 255)
+    let b = lin(Double(v & 0xFF) / 255)
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+extension Color {
+    /// Maximum-contrast ink (white or black) for the chosen background color, so
+    /// text and graphics are never swallowed by it. Reads the stored background.
+    static var appInk: Color {
+        let hex = UserDefaults.standard.string(forKey: "accountsBgHex") ?? "#5227FF"
+        return relativeLuminance(hex) > 0.45 ? .black : .white
+    }
+}
+
 /// "#RRGGBB" -> Color. Falls back to gray on a malformed string.
 extension Color {
     init(hex: String) {
@@ -100,11 +120,11 @@ struct LedgerView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(dateLabel(selectedDay))
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.gray)
+                .foregroundStyle(Color.appInk.opacity(0.6))
             if rows.isEmpty {
                 Text("No transactions")
                     .font(.system(.callout, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.appInk.opacity(0.6))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 12)
             } else {
@@ -140,7 +160,7 @@ struct LedgerView: View {
             VStack(alignment: .leading) {
                 Text(c?.name ?? "—").font(.system(.body, design: .rounded))
                 if let note = t.note {
-                    Text(note).font(.caption).foregroundStyle(.gray)
+                    Text(note).font(.caption).foregroundStyle(Color.appInk.opacity(0.6))
                 }
             }
             Spacer()

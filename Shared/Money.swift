@@ -26,6 +26,9 @@ struct Category: Codable, Identifiable, Hashable {
     var icon: String?         // asset name, reuses eventIconNames
     var colorHex: String      // "#RRGGBB", drives the donut
     var builtin: Bool = false
+    /// Money moved into an investment/savings bucket (e.g. buying stocks). These
+    /// expenses are excluded from "spending", so they count as saved, not spent.
+    var isInvestment: Bool = false
 }
 
 extension Category {

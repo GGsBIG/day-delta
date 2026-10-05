@@ -9,6 +9,7 @@ import UIKit
 struct AccountsView: View {
     @State private var txns: [Txn] = TxnStore.load()
     @State private var accounts: [Account] = AccountStore.load()
+    @State private var categories: [Category] = CategoryStore.load()
 
     /// nil = all accounts (grand total); otherwise the chosen account.
     @State private var selected: UUID? = nil
@@ -21,13 +22,14 @@ struct AccountsView: View {
         Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() })
     }
 
+    /// Text/graphic colors track the chosen background for maximum contrast.
     private enum Palette {
-        static let text = Color.white
-        static let textSoft = Color.white.opacity(0.72)
+        static var text: Color { .appInk }
+        static var textSoft: Color { Color.appInk.opacity(0.72) }
         static let accent = Color(hex: "#FFCEFD")                           // grainient pink
         static let accent2 = Color(hex: "#5227FF")                          // grainient purple
-        static let subcard = Color.white.opacity(0.1)
-        static let stroke = Color.white.opacity(0.22)
+        static var subcard: Color { Color.appInk.opacity(0.1) }
+        static var stroke: Color { Color.appInk.opacity(0.22) }
     }
 
     private var current: Account? { accounts.first { $0.id == selected } }
@@ -46,13 +48,21 @@ struct AccountsView: View {
         let base = selected == nil ? txns : txns.filter { $0.accountID == selected }
         return txnsInPeriod(base, period: period, containing: Date())
     }
-    private var expenseTotal: Decimal { periodScoped.filter { $0.type == .expense }.reduce(0) { $0 + $1.amount } }
+    private var investmentIDs: Set<UUID> { Set(categories.filter { $0.isInvestment }.map { $0.id }) }
+    /// Real consumption: expenses that aren't flagged as investment/savings.
+    private var expenseTotal: Decimal {
+        periodScoped.filter { $0.type == .expense && !investmentIDs.contains($0.categoryID) }.reduce(0) { $0 + $1.amount }
+    }
     private var incomeTotal: Decimal { periodScoped.filter { $0.type == .income }.reduce(0) { $0 + $1.amount } }
 
-    /// Balance change across the curve, as a percent of where it started.
-    private var periodPct: Double {
-        guard let first = series.first?.doubleValue, let last = series.last?.doubleValue, first != 0 else { return 0 }
-        return (last - first) / abs(first) * 100
+    /// Saved = income − real expenses. Money moved into investments counts as
+    /// saved (it left your wallet but is still yours), not spent.
+    private var savedAmount: Decimal { incomeTotal - expenseTotal }
+    /// Savings as a percent of income.
+    private var savingsRate: Double {
+        let inc = (incomeTotal as NSDecimalNumber).doubleValue
+        guard inc > 0 else { return 0 }
+        return (savedAmount as NSDecimalNumber).doubleValue / inc * 100
     }
 
     var body: some View {
@@ -83,6 +93,7 @@ struct AccountsView: View {
         .onAppear {
             txns = TxnStore.load()
             accounts = AccountStore.load()
+            categories = CategoryStore.load()
         }
     }
 
@@ -139,18 +150,20 @@ struct AccountsView: View {
                 .foregroundStyle(Palette.text).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (balance as NSDecimalNumber).doubleValue))
             HStack(spacing: 10) {
-                Label(periodPct >= 0 ? "You've saved this \(period.label.lowercased())!"
-                                     : "Spending up this \(period.label.lowercased())",
+                Label(savedAmount >= 0
+                        ? "You've saved \(formatMoney(savedAmount)) this \(period.label.lowercased())!"
+                        : "You've overspent \(formatMoney(-savedAmount)) this \(period.label.lowercased())",
                       systemImage: "sparkles")
                     .font(.system(.subheadline, design: .rounded)).foregroundStyle(Palette.textSoft)
-                    .labelStyle(.titleAndIcon)
-                Text(String(format: "%+.2f%%", periodPct))
+                    .labelStyle(.titleAndIcon).lineLimit(1).minimumScaleFactor(0.7)
+                Text(String(format: "%+.0f%%", savingsRate))
                     .font(.system(.caption, design: .rounded)).foregroundStyle(.white)
                     .padding(.vertical, 5).padding(.horizontal, 10)
                     .background(RoundedRectangle(cornerRadius: UI.radius).fill(LinearGradient(
                         colors: [Palette.accent, Palette.accent2],
                         startPoint: .leading, endPoint: .trailing)))
-                    .contentTransition(.numericText(value: periodPct))
+                    .contentTransition(.numericText(value: savingsRate))
+                Spacer(minLength: 0)
             }
         }
     }
@@ -210,7 +223,7 @@ struct AccountsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                BalanceChart(series: series, tint: Palette.accent2, compact: true)
+                BalanceChart(series: series, tint: .appInk, compact: true)
                     .frame(width: 150, height: 66)
                     .id(period)
             }

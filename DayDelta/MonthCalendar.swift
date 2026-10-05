@@ -32,7 +32,7 @@ struct MonthCalendarView: View {
             Spacer()
             Button(action: onNextMonth) { Image(systemName: "chevron.right") }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(Color.appInk)
         .padding(.horizontal, 8)
     }
 
@@ -49,7 +49,7 @@ struct MonthCalendarView: View {
         return LazyVGrid(columns: columns, spacing: 4) {
             ForEach(symbols, id: \.self) { s in
                 Text(s).font(.system(.caption2, design: .rounded))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(Color.appInk.opacity(0.6))
             }
         }
     }

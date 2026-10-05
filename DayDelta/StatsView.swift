@@ -86,10 +86,10 @@ struct StatsView: View {
         .chartBackground { _ in
             VStack {
                 Text(type == .expense ? "Expense" : "Income")
-                    .font(.caption).foregroundStyle(.gray)
+                    .font(.caption).foregroundStyle(Color.appInk.opacity(0.6))
                 Text(formatMoney(total))
                     .font(.system(.title2, design: .rounded))
-                    .foregroundStyle(.white).minimumScaleFactor(0.5).lineLimit(1)
+                    .foregroundStyle(Color.appInk).minimumScaleFactor(0.5).lineLimit(1)
                     .contentTransition(.numericText())
             }
         }
@@ -104,11 +104,11 @@ struct StatsView: View {
                     Circle().fill(color(item.categoryID)).frame(width: 12, height: 12)
                     Text(name(item.categoryID))
                     Spacer()
-                    Text(formatMoney(item.total)).foregroundStyle(.gray)
+                    Text(formatMoney(item.total)).foregroundStyle(Color.appInk.opacity(0.6))
                     Text(percent(item.total)).frame(width: 52, alignment: .trailing)
                 }
                 .font(.system(.body, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.appInk)
                 .transition(.opacity.combined(with: .move(edge: .leading)))
             }
         }
