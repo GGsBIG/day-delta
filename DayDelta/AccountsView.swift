@@ -121,8 +121,8 @@ struct AccountsView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 26).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(Palette.stroke))
+        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.ultraThinMaterial))
+        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(Palette.stroke))
     }
 
     // MARK: Balance block
@@ -147,7 +147,7 @@ struct AccountsView: View {
                 Text(String(format: "%+.2f%%", periodPct))
                     .font(.system(.caption, design: .rounded)).foregroundStyle(.white)
                     .padding(.vertical, 5).padding(.horizontal, 10)
-                    .background(Capsule().fill(LinearGradient(
+                    .background(RoundedRectangle(cornerRadius: UI.radius).fill(LinearGradient(
                         colors: [Palette.accent, Palette.accent2],
                         startPoint: .leading, endPoint: .trailing)))
                     .contentTransition(.numericText(value: periodPct))
@@ -166,11 +166,11 @@ struct AccountsView: View {
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(on ? .white : Palette.text)
                         .padding(.vertical, 11).padding(.horizontal, 22)
-                        .background(Capsule().fill(on
+                        .background(RoundedRectangle(cornerRadius: UI.radius).fill(on
                             ? AnyShapeStyle(LinearGradient(colors: [Palette.accent, Palette.accent2],
                                                            startPoint: .leading, endPoint: .trailing))
                             : AnyShapeStyle(.ultraThinMaterial)))
-                        .overlay(Capsule().strokeBorder(on ? .clear : Palette.stroke))
+                        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(on ? .clear : Palette.stroke))
                 }
                 .buttonStyle(.plain)
             }
@@ -222,8 +222,8 @@ struct AccountsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(RoundedRectangle(cornerRadius: 28).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: 28).strokeBorder(Palette.stroke))
+        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.ultraThinMaterial))
+        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(Palette.stroke))
         .padding(.bottom, 4)
     }
 
@@ -236,7 +236,7 @@ struct AccountsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 20).fill(Palette.subcard))
+        .background(RoundedRectangle(cornerRadius: UI.radius).fill(Palette.subcard))
     }
 
     // MARK: Derived labels & actions

@@ -65,7 +65,7 @@ struct ShareSheet: View {
         NavigationStack {
             VStack(spacing: 24) {
                 CountdownCard(event: event)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .clipShape(RoundedRectangle(cornerRadius: UI.radius))
                 if let image {
                     ShareLink(item: image, preview: SharePreview(event.title, image: image)) {
                         Label("Share", systemImage: "square.and.arrow.up")

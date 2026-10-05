@@ -1,5 +1,8 @@
 import SwiftUI
 
+/// App-wide UI constants. One corner radius so every rounded container matches.
+enum UI { static let radius: CGFloat = 20 }
+
 /// "#RRGGBB" -> Color. Falls back to gray on a malformed string.
 extension Color {
     init(hex: String) {

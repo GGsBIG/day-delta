@@ -51,7 +51,7 @@ struct EventEditView: View {
                         Image(uiImage: ui)
                             .resizable().scaledToFill()
                             .frame(height: 160).frame(maxWidth: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .clipShape(RoundedRectangle(cornerRadius: UI.radius))
                             .listRowInsets(EdgeInsets())
                     }
                     PhotosPicker(selection: $pickerItem, matching: .images) {
@@ -156,7 +156,7 @@ struct EventEditView: View {
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .background(selected ? Color.white : Color.white.opacity(0.1))
                 .foregroundStyle(selected ? Color.black : Color.white)
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: UI.radius))
         }
         .buttonStyle(.plain)
     }
@@ -197,7 +197,7 @@ struct IconPicker: View {
             .frame(width: 44, height: 44)
             .foregroundStyle(selected ? Color.black : Color.white)
             .background(selected ? Color.white : Color.white.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: UI.radius))
         }
         .buttonStyle(.plain)
     }

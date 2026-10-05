@@ -93,9 +93,9 @@ struct MonthCalendarView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 40)
             .background(isSelected ? Color.white : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: UI.radius))
             .overlay(
-                RoundedRectangle(cornerRadius: 8)
+                RoundedRectangle(cornerRadius: UI.radius)
                     .strokeBorder(isToday && !isSelected ? Color.white.opacity(0.5) : .clear,
                                   lineWidth: 1)
             )
