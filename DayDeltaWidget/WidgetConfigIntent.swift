@@ -14,12 +14,12 @@ struct WidgetConfigIntent: WidgetConfigurationIntent {
     @Parameter(title: "Label")
     var label: String?
 
-    @Parameter(title: "Icon", default: .none)
+    @Parameter(title: "Icon", default: IconChoice.none)
     var icon: IconChoice
 
     @Parameter(title: "Count", default: .auto)
     var mode: CountMode
 
-    @Parameter(title: "Repeat", default: .none)
+    @Parameter(title: "Repeat", default: Recurrence.none)
     var recurrence: Recurrence
 }

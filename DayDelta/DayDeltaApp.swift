@@ -18,7 +18,6 @@ struct DayDeltaApp: App {
 private struct RootView: View {
     @State private var tab = 0
     @State private var prevTab = 0
-    @State private var appeared = false
     @State private var requestAddTxn = false
 
     /// Horizontal slide whose direction follows whether we moved to a higher or
@@ -38,12 +37,7 @@ private struct RootView: View {
                 .transition(slide)
         }
         .safeAreaInset(edge: .bottom) { tabBar }
-        .opacity(appeared ? 1 : 0)
-        .scaleEffect(appeared ? 1 : 0.96)
         .sensoryFeedback(.selection, trigger: tab)
-        .task {
-            withAnimation(.smooth(duration: 0.5)) { appeared = true }   // launch entrance
-        }
     }
 
     @ViewBuilder

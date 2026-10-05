@@ -19,7 +19,7 @@ func dayDelta(to target: Date, from now: Date = Date(), calendar: Calendar = .cu
 /// How a single event turns its day-delta into text.
 /// `auto` = future counts down, past counts up ("N days ago"), 0 = today.
 /// `dayCounter` = inclusive "Day N" counter (start day is day 1) for today/past.
-enum CountMode: String, Codable, CaseIterable {
+enum CountMode: String, Codable, CaseIterable, Sendable {
     case auto
     case dayCounter
 }
@@ -38,7 +38,7 @@ func countDisplay(delta: Int, mode: CountMode) -> (number: String, subtitle: Str
 }
 
 /// How an event's date repeats.
-enum Recurrence: String, Codable, CaseIterable {
+enum Recurrence: String, Codable, CaseIterable, Sendable {
     case none
     case weekly
     case monthly

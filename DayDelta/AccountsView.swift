@@ -1,11 +1,10 @@
 import SwiftUI
 
 /// Accounts overview: total balance on top, then each account's balance.
-/// Rows cascade in top-to-bottom each time the tab appears.
+/// The whole view rides the tab container's slide-in — no per-row stagger.
 struct AccountsView: View {
     @State private var txns: [Txn] = TxnStore.load()
     @State private var accounts: [Account] = AccountStore.load()
-    @State private var appeared = false
 
     private var total: Decimal {
         txns.reduce(Decimal(0)) { $0 + ($1.type == .income ? $1.amount : -$1.amount) }
@@ -25,18 +24,15 @@ struct AccountsView: View {
                             .minimumScaleFactor(0.4).lineLimit(1)
                     }
                     .padding(.top, 8)
-                    .modifier(Cascade(index: 0, appeared: appeared))
 
                     VStack(spacing: 10) {
                         ForEach(Array(accounts.enumerated()), id: \.element.id) { i, a in
                             balanceRow(name: a.name, color: Color(hex: a.colorHex),
                                        value: accountBalance(txns, accountID: a.id))
-                                .modifier(Cascade(index: i + 1, appeared: appeared))
                         }
                         if hasUnassigned {
                             balanceRow(name: "Unassigned", color: .gray,
                                        value: accountBalance(txns, accountID: nil))
-                                .modifier(Cascade(index: accounts.count + 1, appeared: appeared))
                         }
                     }
                 }
@@ -51,7 +47,6 @@ struct AccountsView: View {
         .onAppear {
             txns = TxnStore.load()
             accounts = AccountStore.load()
-            appeared = true
         }
     }
 
@@ -68,19 +63,5 @@ struct AccountsView: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 14)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color(white: 0.1)))
-    }
-}
-
-/// Fade + slide-up entrance, delayed by row index for a top-to-bottom cascade.
-private struct Cascade: ViewModifier {
-    let index: Int
-    let appeared: Bool
-
-    func body(content: Content) -> some View {
-        content
-            .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 16)
-            .animation(.spring(response: 0.42, dampingFraction: 0.82)
-                        .delay(Double(index) * 0.07), value: appeared)
     }
 }
