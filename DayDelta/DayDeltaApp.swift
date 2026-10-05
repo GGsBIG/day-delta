@@ -11,49 +11,61 @@ struct DayDeltaApp: App {
     }
 }
 
-/// Custom tab container so switching Days <-> Money slides directionally.
-/// ponytail: a plain TabView can't animate its content swap; this trades tab
-/// state preservation (views reload from their stores on switch, which is cheap)
-/// for the slide + haptic. Two tabs only, so fixed per-view edges already give
-/// the correct left/right direction both ways.
+/// Custom tab container. Tabs: Accounts(0, default) / Ledger(1) / Stats(2) / Days(3).
+/// ponytail: a plain TabView can't animate its content swap; this trades tab state
+/// preservation (views reload from their stores on switch, which is cheap) for a
+/// directional slide + haptic. The slide direction follows the index delta.
 private struct RootView: View {
     @State private var tab = 0
+    @State private var prevTab = 0
+    @State private var appeared = false
     @State private var requestAddTxn = false
+
+    /// Horizontal slide whose direction follows whether we moved to a higher or
+    /// lower tab index — new page in from the far side, old page out the near side.
+    private var slide: AnyTransition {
+        let forward = tab >= prevTab
+        return .asymmetric(
+            insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
+            removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity))
+    }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            Group {
-                switch tab {
-                case 0:
-                    ContentView()
-                        .transition(.move(edge: .leading).combined(with: .opacity))
-                case 1:
-                    LedgerView(requestAddTxn: $requestAddTxn)
-                        .transition(.opacity)
-                case 2:
-                    StatsView()
-                        .transition(.opacity)
-                default:
-                    AccountsView()
-                        .transition(.opacity)
-                }
-            }
+            content
+                .id(tab)
+                .transition(slide)
         }
         .safeAreaInset(edge: .bottom) { tabBar }
+        .opacity(appeared ? 1 : 0)
+        .scaleEffect(appeared ? 1 : 0.96)
         .sensoryFeedback(.selection, trigger: tab)
+        .task {
+            withAnimation(.smooth(duration: 0.5)) { appeared = true }   // launch entrance
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch tab {
+        case 0:  AccountsView()
+        case 1:  LedgerView(requestAddTxn: $requestAddTxn)
+        case 2:  StatsView()
+        default: ContentView()
+        }
     }
 
     private var tabBar: some View {
         HStack(spacing: 0) {
-            tabButton(0, "Days", "calendar")
+            tabButton(0, "Accounts", "creditcard")
             tabButton(1, "Ledger", "calendar.day.timeline.left")
             if tab == 1 {
                 addButton
                     .transition(.scale.combined(with: .opacity))
             }
             tabButton(2, "Stats", "chart.pie")
-            tabButton(3, "Accounts", "creditcard")
+            tabButton(3, "Days", "calendar")
         }
         .padding(.top, 8)
         .background(.black)
@@ -62,7 +74,7 @@ private struct RootView: View {
         }
     }
 
-    /// Center Add — only present on the Money tab. Its insertion/removal rides the
+    /// Center Add — only present on the Ledger tab. Its insertion/removal rides the
     /// tab-switch `.bouncy` animation, so it springs in / collapses out silkily.
     private var addButton: some View {
         Button {
@@ -82,6 +94,7 @@ private struct RootView: View {
     private func tabButton(_ i: Int, _ title: String, _ icon: String) -> some View {
         Button {
             guard tab != i else { return }
+            prevTab = tab
             withAnimation(.bouncy(duration: 0.5)) { tab = i }
         } label: {
             VStack(spacing: 3) {
