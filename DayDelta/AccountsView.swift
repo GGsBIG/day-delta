@@ -15,13 +15,12 @@ struct AccountsView: View {
     @State private var showingManage = false
 
     private enum Palette {
-        static let text = Color(hex: "#78350F")                            // deep amber brown
-        static let textSoft = Color(hex: "#92400E")
-        static let accent = Color(hex: "#F59E0B")                          // honey amber
-        static let accent2 = Color(hex: "#D97706")                         // ember
-        static let card = Color.white.opacity(0.55)
-        static let subcard = Color.white.opacity(0.4)
-        static let stroke = Color(hex: "#B45309").opacity(0.18)
+        static let text = Color.white
+        static let textSoft = Color.white.opacity(0.72)
+        static let accent = Color(hex: "#FFCEFD")                           // grainient pink
+        static let accent2 = Color(hex: "#5227FF")                          // grainient purple
+        static let subcard = Color.white.opacity(0.1)
+        static let stroke = Color.white.opacity(0.22)
     }
 
     private var current: Account? { accounts.first { $0.id == selected } }
@@ -65,8 +64,8 @@ struct AccountsView: View {
             .animation(.snappy(duration: 0.45), value: period)
             .animation(.snappy(duration: 0.45), value: selected)
         }
-        .preferredColorScheme(.light)
-        .tint(Palette.accent2)
+        .preferredColorScheme(.dark)
+        .tint(.white)
         .sheet(isPresented: $showingManage) {
             NavigationStack { AccountManagerView(accounts: $accounts) }
                 .preferredColorScheme(.dark).tint(.white)
@@ -83,7 +82,7 @@ struct AccountsView: View {
 
     // MARK: Background
 
-    private var background: some View { HoneyEmberBackground() }
+    private var background: some View { GrainientBackground() }
 
     // MARK: Header (greeting + switcher)
 
@@ -109,12 +108,16 @@ struct AccountsView: View {
                 Image(systemName: "square.grid.2x2")
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.text)
                     .frame(width: 42, height: 42)
-                    .background(Circle().fill(Palette.card))
+                    .background(Circle().fill(.ultraThinMaterial))
                     .overlay(Circle().strokeBorder(Palette.stroke))
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: selected)
         }
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(RoundedRectangle(cornerRadius: 26).fill(.ultraThinMaterial))
+        .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(Palette.stroke))
     }
 
     // MARK: Balance block
@@ -127,7 +130,7 @@ struct AccountsView: View {
                 Spacer()
             }
             Text(formatMoney(balance))
-                .font(.system(size: 46, weight: .bold, design: .rounded))
+                .font(.system(size: 52, weight: .thin, design: .rounded)).tracking(-1.5)
                 .foregroundStyle(Palette.text).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (balance as NSDecimalNumber).doubleValue))
             HStack(spacing: 10) {
@@ -161,7 +164,7 @@ struct AccountsView: View {
                         .background(Capsule().fill(on
                             ? AnyShapeStyle(LinearGradient(colors: [Palette.accent, Palette.accent2],
                                                            startPoint: .leading, endPoint: .trailing))
-                            : AnyShapeStyle(Palette.card)))
+                            : AnyShapeStyle(.ultraThinMaterial)))
                         .overlay(Capsule().strokeBorder(on ? .clear : Palette.stroke))
                 }
                 .buttonStyle(.plain)
@@ -194,7 +197,8 @@ struct AccountsView: View {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatMoney(series.last?.balance ?? balance))
-                        .font(.system(.title, design: .rounded)).bold().foregroundStyle(Palette.text)
+                        .font(.system(.title, design: .rounded).weight(.light)).tracking(-0.8)
+                        .foregroundStyle(Palette.text)
                         .minimumScaleFactor(0.5).lineLimit(1)
                         .contentTransition(.numericText(value: (series.last?.doubleValue ?? 0)))
                     Text("Balance in wallet").font(.caption).foregroundStyle(Palette.textSoft.opacity(0.8))
@@ -213,7 +217,7 @@ struct AccountsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(RoundedRectangle(cornerRadius: 28).fill(Palette.card))
+        .background(RoundedRectangle(cornerRadius: 28).fill(.ultraThinMaterial))
         .overlay(RoundedRectangle(cornerRadius: 28).strokeBorder(Palette.stroke))
         .padding(.bottom, 4)
     }
@@ -221,7 +225,7 @@ struct AccountsView: View {
     private func miniStat(_ title: String, _ value: Decimal) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.system(.subheadline, design: .rounded)).foregroundStyle(Palette.textSoft)
-            Text(formatMoney(value)).font(.system(.title3, design: .rounded)).bold()
+            Text(formatMoney(value)).font(.system(.title3, design: .rounded).weight(.light)).tracking(-0.5)
                 .foregroundStyle(Palette.text).minimumScaleFactor(0.5).lineLimit(1)
                 .contentTransition(.numericText(value: (value as NSDecimalNumber).doubleValue))
         }
@@ -287,7 +291,7 @@ private struct AvatarStack: View {
             .frame(width: size, height: size)
             .overlay(Text(text).font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(.white).minimumScaleFactor(0.6).lineLimit(1))
-            .overlay(Circle().strokeBorder(Color(hex: "#FFF8EC"), lineWidth: 2.5))
+            .overlay(Circle().strokeBorder(.white.opacity(0.85), lineWidth: 2.5))
     }
 
     private func initials(_ name: String) -> String {
@@ -297,36 +301,58 @@ private struct AvatarStack: View {
     }
 }
 
-/// Warm, light "honey ember" backdrop whose amber glows drift continuously.
-/// Driven by TimelineView(.animation), so it animates forever without a trigger.
-private struct HoneyEmberBackground: View {
-    private struct Ember { let color: Color; let base: CGPoint; let amp: CGSize
-                           let speed: Double; let phase: Double; let radius: CGFloat }
-    private let embers: [Ember] = [
-        .init(color: Color(hex: "#FBBF24"), base: .init(x: 0.25, y: 0.20), amp: .init(width: 0.12, height: 0.08), speed: 0.16, phase: 0.0, radius: 360),
-        .init(color: Color(hex: "#F59E0B"), base: .init(x: 0.80, y: 0.30), amp: .init(width: 0.10, height: 0.10), speed: 0.12, phase: 1.7, radius: 340),
-        .init(color: Color(hex: "#FB923C"), base: .init(x: 0.55, y: 0.75), amp: .init(width: 0.14, height: 0.10), speed: 0.20, phase: 3.1, radius: 320),
-        .init(color: Color(hex: "#FDE68A"), base: .init(x: 0.15, y: 0.85), amp: .init(width: 0.10, height: 0.12), speed: 0.14, phase: 4.6, radius: 300),
+/// Grainient backdrop: drifting pink→purple gradient blobs over a purple base,
+/// finished with a film-grain overlay and boosted contrast. Animates forever via
+/// TimelineView(.animation).
+/// ponytail: gradient-blob approximation of the Grainient shader — the Metal
+/// toolchain isn't installed here. Swap for a `.colorEffect` shader if it is.
+private struct GrainientBackground: View {
+    private typealias Blob = (hex: String, base: (Double, Double), amp: (Double, Double),
+                              speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
+    private let blobs: [Blob] = [
+        ("#FFCEFD", (0.30, 0.24), (0.18, 0.12), 0.070, 0.0, 520, .screen),
+        ("#B497CF", (0.76, 0.62), (0.16, 0.14), 0.052, 1.5, 480, .screen),
+        ("#5227FF", (0.50, 0.92), (0.20, 0.12), 0.061, 3.0, 440, .screen),
+        ("#1E1248", (0.20, 0.80), (0.14, 0.16), 0.045, 4.2, 420, .multiply),
     ]
 
     var body: some View {
         TimelineView(.animation) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
             ZStack {
-                LinearGradient(colors: [Color(hex: "#FFF8EC"), Color(hex: "#FDEBCF")],
-                               startPoint: .top, endPoint: .bottom)
-                ForEach(embers.indices, id: \.self) { i in
-                    let e = embers[i]
-                    let x = e.base.x + e.amp.width * CGFloat(sin(t * e.speed + e.phase))
-                    let y = e.base.y + e.amp.height * CGFloat(cos(t * e.speed * 0.9 + e.phase))
-                    RadialGradient(colors: [e.color.opacity(0.5), e.color.opacity(0)],
-                                   center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: e.radius)
-                        .blendMode(.multiply)
+                LinearGradient(colors: [Color(hex: "#5227FF"), Color(hex: "#2A1A66")],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+                ForEach(blobs.indices, id: \.self) { i in
+                    let b = blobs[i]
+                    let x = b.base.0 + b.amp.0 * sin(t * b.speed + b.phase)
+                    let y = b.base.1 + b.amp.1 * cos(t * b.speed * 0.9 + b.phase)
+                    RadialGradient(colors: [Color(hex: b.hex), Color(hex: b.hex).opacity(0)],
+                                   center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: b.r)
+                        .blendMode(b.blend)
                 }
             }
+            .contrast(1.5)
+            .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
             .ignoresSafeArea()
         }
     }
+}
+
+/// A tiled static noise image for film grain, built once.
+private enum GrainTexture {
+    static let image: Image = {
+        let n = 128, bytes = n * n * 4
+        var px = [UInt8](repeating: 255, count: bytes)
+        for i in 0..<(n * n) {
+            let v = UInt8.random(in: 0...255)
+            px[i * 4] = v; px[i * 4 + 1] = v; px[i * 4 + 2] = v
+        }
+        let ctx = CGContext(data: &px, width: n, height: n, bitsPerComponent: 8,
+                            bytesPerRow: n * 4, space: CGColorSpaceCreateDeviceRGB(),
+                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        guard let cg = ctx?.makeImage() else { return Image(systemName: "circle") }
+        return Image(decorative: cg, scale: 1).resizable(resizingMode: .tile)
+    }()
 }
 
 /// Axis-free mini balance curve for the card: smooth monotone line, faint area

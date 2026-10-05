@@ -19,6 +19,7 @@ private struct RootView: View {
     @State private var tab = 0
     @State private var prevTab = 0
     @State private var requestAddTxn = false
+    @Namespace private var tabNS
 
     /// Horizontal slide whose direction follows whether we moved to a higher or
     /// lower tab index — new page in from the far side, old page out the near side.
@@ -50,9 +51,8 @@ private struct RootView: View {
         }
     }
 
-    /// Floating honey-themed pill: circular icon buttons, the active one on an
-    /// amber disc. Translucent material so it reads on both the light Accounts
-    /// page and the dark tabs.
+    /// Glass pill: frosted capsule with circular icon buttons. The active tab's
+    /// highlight glides between slots via matchedGeometry, so switching is silky.
     private var tabBar: some View {
         HStack(spacing: 6) {
             tabButton(0, "creditcard")
@@ -66,8 +66,8 @@ private struct RootView: View {
         }
         .padding(6)
         .background(Capsule().fill(.ultraThinMaterial))
-        .overlay(Capsule().strokeBorder(Color(hex: "#F59E0B").opacity(0.25)))
-        .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+        .overlay(Capsule().strokeBorder(.white.opacity(0.25)))
+        .shadow(color: .black.opacity(0.3), radius: 14, y: 6)
         .padding(.horizontal, 32)
         .padding(.bottom, 4)
     }
@@ -80,11 +80,11 @@ private struct RootView: View {
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color(hex: "#78350F"))
+                .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
                 .background(Circle().fill(LinearGradient(
-                    colors: [Color(hex: "#FBBF24"), Color(hex: "#F59E0B")],
-                    startPoint: .top, endPoint: .bottom)))
+                    colors: [Color(hex: "#FFCEFD"), Color(hex: "#5227FF")],
+                    startPoint: .topLeading, endPoint: .bottomTrailing)))
                 .offset(y: -10)
         }
         .buttonStyle(.plain)
@@ -99,12 +99,18 @@ private struct RootView: View {
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(tab == i ? Color(hex: "#78350F") : .primary.opacity(0.65))
+                .foregroundStyle(tab == i ? .white : .white.opacity(0.55))
                 .frame(width: 50, height: 50)
-                .background(Circle().fill(tab == i ? Color(hex: "#F59E0B") : .clear))
+                .background {
+                    if tab == i {
+                        Circle()
+                            .fill(LinearGradient(colors: [Color(hex: "#FFCEFD"), Color(hex: "#5227FF")],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .matchedGeometryEffect(id: "tabHighlight", in: tabNS)
+                    }
+                }
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .animation(.smooth(duration: 0.3), value: tab)
     }
 }

@@ -47,9 +47,9 @@ struct AccountManagerView: View {
         }
     }
 
-    /// Only non-builtin accounts delete; builtins silently skip.
+    /// Any account can be deleted now, built-in or not.
     private func delete(_ offsets: IndexSet) {
-        let ids = offsets.map { accounts[$0] }.filter { !$0.builtin }.map { $0.id }
+        let ids = offsets.map { accounts[$0].id }
         accounts.removeAll { ids.contains($0.id) }
     }
 }

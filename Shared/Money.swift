@@ -56,13 +56,11 @@ struct Account: Codable, Identifiable, Hashable {
 }
 
 extension Account {
+    /// Seeded on first run. Just Cash + Bank; "All accounts" is the aggregate view,
+    /// not a stored account. All accounts (these included) can be renamed/deleted.
     static let builtins: [Account] = [
-        .init(name: "Cash", colorHex: "#22C55E", builtin: true),
-        .init(name: "Bank", colorHex: "#4F9DFF", builtin: true),
-        .init(name: "Credit Card", colorHex: "#F59E0B", builtin: true),
-        .init(name: "Cathay United Bank", colorHex: "#15803D", builtin: true),
-        .init(name: "CTBC Bank", colorHex: "#2563EB", builtin: true),
-        .init(name: "Fubon Bank", colorHex: "#CA8A04", builtin: true),
+        .init(name: "Cash", colorHex: "#22C55E"),
+        .init(name: "Bank", colorHex: "#4F9DFF"),
     ]
 }
 
@@ -73,10 +71,7 @@ enum AccountStore {
         if let data = UserDefaults.standard.data(forKey: key),
            let accs = try? JSONDecoder().decode([Account].self, from: data),
            !accs.isEmpty {
-            // Append any built-in (e.g. the bank presets) missing from an older save.
-            let merged = accs + Account.builtins.filter { b in !accs.contains { $0.name == b.name } }
-            if merged != accs { save(merged) }
-            return merged
+            return accs
         }
         save(Account.builtins)
         return Account.builtins
