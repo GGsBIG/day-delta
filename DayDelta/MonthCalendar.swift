@@ -28,7 +28,7 @@ struct MonthCalendarView: View {
             Button(action: onPrevMonth) { Image(systemName: "chevron.left") }
             Spacer()
             Text(monthTitle)
-                .font(.system(.headline, design: .monospaced))
+                .font(.system(.headline, design: .rounded))
             Spacer()
             Button(action: onNextMonth) { Image(systemName: "chevron.right") }
         }
@@ -48,7 +48,7 @@ struct MonthCalendarView: View {
         let symbols = orderedWeekdaySymbols()
         return LazyVGrid(columns: columns, spacing: 4) {
             ForEach(symbols, id: \.self) { s in
-                Text(s).font(.system(.caption2, design: .monospaced))
+                Text(s).font(.system(.caption2, design: .rounded))
                     .foregroundStyle(.gray)
             }
         }
@@ -84,7 +84,7 @@ struct MonthCalendarView: View {
         } label: {
             VStack(spacing: 3) {
                 Text("\(cal.component(.day, from: day))")
-                    .font(.system(.callout, design: .monospaced))
+                    .font(.system(.callout, design: .rounded))
                     .foregroundStyle(isSelected ? .black : .white)
                 Circle()
                     .fill(dotColor ?? .clear)

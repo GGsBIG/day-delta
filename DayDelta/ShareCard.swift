@@ -29,25 +29,25 @@ struct CountdownCard: View {
                         .frame(width: 22, height: 22).foregroundStyle(.gray)
                 }
                 Text(event.title)
-                    .font(.system(.title3, design: .monospaced))
+                    .font(.system(.title3, design: .rounded))
                     .foregroundStyle(.gray)
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
             Text(t.number)
-                .font(.system(size: 120, weight: .bold, design: .monospaced))
+                .font(.system(size: 120, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .minimumScaleFactor(0.3)
                 .lineLimit(1)
             Text(event.label ?? t.subtitle)
-                .font(.system(.title2, design: .monospaced))
+                .font(.system(.title2, design: .rounded))
                 .foregroundStyle(.gray)
             Text(dateLabel(target))
-                .font(.system(.footnote, design: .monospaced))
+                .font(.system(.footnote, design: .rounded))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             Text("△ DayDelta")
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.secondary)
         }
         .padding(28)
@@ -69,7 +69,7 @@ struct ShareSheet: View {
                 if let image {
                     ShareLink(item: image, preview: SharePreview(event.title, image: image)) {
                         Label("Share", systemImage: "square.and.arrow.up")
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(.body, design: .rounded))
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.white)

@@ -58,7 +58,7 @@ struct StatsView: View {
                 .sensoryFeedback(.selection, trigger: type)
             }
             .scrollContentBackground(.hidden)
-            .background(Color.black)
+            .background(.clear)
             .navigationTitle("Stats")
         }
         .preferredColorScheme(.dark)
@@ -87,7 +87,7 @@ struct StatsView: View {
                 Text(type == .expense ? "Expense" : "Income")
                     .font(.caption).foregroundStyle(.gray)
                 Text(formatMoney(total))
-                    .font(.system(.title2, design: .monospaced)).bold()
+                    .font(.system(.title2, design: .rounded)).bold()
                     .foregroundStyle(.white).minimumScaleFactor(0.5).lineLimit(1)
                     .contentTransition(.numericText())
             }
@@ -106,7 +106,7 @@ struct StatsView: View {
                     Text(formatMoney(item.total)).foregroundStyle(.gray)
                     Text(percent(item.total)).frame(width: 52, alignment: .trailing).bold()
                 }
-                .font(.system(.body, design: .monospaced))
+                .font(.system(.body, design: .rounded))
                 .foregroundStyle(.white)
                 .transition(.opacity.combined(with: .move(edge: .leading)))
             }

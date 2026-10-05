@@ -32,13 +32,31 @@ private struct RootView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            GrainientBackground().ignoresSafeArea()
             content
                 .id(tab)
                 .transition(slide)
         }
         .safeAreaInset(edge: .bottom) { tabBar }
         .sensoryFeedback(.selection, trigger: tab)
+        .fontDesign(.rounded)
+        // Swipe left/right anywhere to move between tabs.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 24)
+                .onEnded { v in
+                    guard abs(v.translation.width) > 70,
+                          abs(v.translation.width) > abs(v.translation.height) * 1.3 else { return }
+                    switchTab(by: v.translation.width < 0 ? 1 : -1)
+                }
+        )
+    }
+
+    /// Step the active tab, clamped to 0...3, with the directional slide.
+    private func switchTab(by delta: Int) {
+        let next = tab + delta
+        guard next >= 0, next <= 3, next != tab else { return }
+        prevTab = tab
+        withAnimation(.bouncy(duration: 0.5)) { tab = next }
     }
 
     @ViewBuilder

@@ -22,7 +22,7 @@ struct AccountManagerView: View {
                 Label("Add account", systemImage: "plus")
             }
         }
-        .font(.system(.body, design: .monospaced))
+        .font(.system(.body, design: .rounded))
         .scrollContentBackground(.hidden)
         .background(Color.black)
         .navigationTitle("Accounts")
@@ -77,7 +77,7 @@ private struct AccountEditSheet: View {
                     }
                 }
             }
-            .font(.system(.body, design: .monospaced))
+            .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)
             .background(Color.black)
             .navigationTitle(account.name.isEmpty ? "New account" : account.name)

@@ -29,7 +29,7 @@ struct Keypad: View {
             amount = applyAmountKey(amount, key)
         } label: {
             Text(label(key))
-                .font(.system(.title2, design: .monospaced))
+                .font(.system(.title2, design: .rounded))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)

@@ -42,7 +42,7 @@ struct TxnEditView: View {
         NavigationStack {
             VStack(spacing: 16) {
                 Text(amountText.isEmpty ? "0" : amountText)
-                    .font(.system(size: 48, weight: .bold, design: .monospaced))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.4).lineLimit(1)
                     .frame(maxWidth: .infinity)
@@ -73,7 +73,7 @@ struct TxnEditView: View {
                 row("Note") {
                     TextField("Note", text: $note)
                         .multilineTextAlignment(.trailing)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(.body, design: .rounded))
                 }
 
                 Spacer(minLength: 0)
@@ -108,7 +108,7 @@ struct TxnEditView: View {
             Spacer()
             content()
         }
-        .font(.system(.body, design: .monospaced))
+        .font(.system(.body, design: .rounded))
         .padding(.vertical, 6)
     }
 
@@ -120,7 +120,7 @@ struct TxnEditView: View {
             Text(value).foregroundStyle(.white)
             Image(systemName: "chevron.right").foregroundStyle(.gray).font(.caption)
         }
-        .font(.system(.body, design: .monospaced))
+        .font(.system(.body, design: .rounded))
         .padding(.vertical, 6)
         .contentShape(Rectangle())
     }

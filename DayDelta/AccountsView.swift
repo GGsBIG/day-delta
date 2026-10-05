@@ -50,14 +50,13 @@ struct AccountsView: View {
 
     var body: some View {
         ZStack {
-            background
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 header
                 balanceBlock
                 chips
                 card
             }
-            .padding(.horizontal)
+            .padding(.horizontal, 16)
             .padding(.top, 8)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .animation(.snappy(duration: 0.45), value: balance)
@@ -79,10 +78,6 @@ struct AccountsView: View {
             accounts = AccountStore.load()
         }
     }
-
-    // MARK: Background
-
-    private var background: some View { GrainientBackground() }
 
     // MARK: Header (greeting + switcher)
 
@@ -306,14 +301,14 @@ private struct AvatarStack: View {
 /// TimelineView(.animation).
 /// ponytail: gradient-blob approximation of the Grainient shader — the Metal
 /// toolchain isn't installed here. Swap for a `.colorEffect` shader if it is.
-private struct GrainientBackground: View {
+struct GrainientBackground: View {
     private typealias Blob = (hex: String, base: (Double, Double), amp: (Double, Double),
                               speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
     private let blobs: [Blob] = [
-        ("#FFCEFD", (0.30, 0.24), (0.18, 0.12), 0.070, 0.0, 520, .screen),
-        ("#B497CF", (0.76, 0.62), (0.16, 0.14), 0.052, 1.5, 480, .screen),
-        ("#5227FF", (0.50, 0.92), (0.20, 0.12), 0.061, 3.0, 440, .screen),
-        ("#1E1248", (0.20, 0.80), (0.14, 0.16), 0.045, 4.2, 420, .multiply),
+        ("#FFCEFD", (0.30, 0.24), (0.18, 0.12), 0.22, 0.0, 520, .screen),
+        ("#B497CF", (0.76, 0.62), (0.16, 0.14), 0.17, 1.5, 480, .screen),
+        ("#5227FF", (0.50, 0.92), (0.20, 0.12), 0.20, 3.0, 440, .screen),
+        ("#1E1248", (0.20, 0.80), (0.14, 0.16), 0.15, 4.2, 420, .multiply),
     ]
 
     var body: some View {

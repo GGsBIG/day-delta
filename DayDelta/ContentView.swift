@@ -70,7 +70,7 @@ struct ContentView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .background(Color.black)
+            .background(.clear)
             .navigationTitle("DayDelta")
             .navigationDestination(item: $viewing) { event in
                 MemoryDetailView(event: event, onUpdate: updateEvent)
@@ -113,7 +113,7 @@ struct ContentView: View {
     @ViewBuilder
     private func row(_ event: Event) -> some View {
         EventRow(event: event)
-            .listRowBackground(Color.black)
+            .listRowBackground(Color.clear)
             .contentShape(Rectangle())
             .onTapGesture { viewing = event }
     }
@@ -222,7 +222,7 @@ struct EventRow: View {
                                 .foregroundStyle(.gray)
                         }
                         Text(event.title)
-                            .font(.system(.subheadline, design: .monospaced))
+                            .font(.system(.subheadline, design: .rounded))
                             .foregroundStyle(.gray)
                         if event.pinned {
                             Image(systemName: "pin.fill")
@@ -230,20 +230,20 @@ struct EventRow: View {
                         }
                     }
                     Text(event.label ?? t.subtitle)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.gray)
                 }
                 Spacer()
                 Text(t.number)
-                    .font(.system(size: 44, weight: .bold, design: .monospaced))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
             Text(dateLabel(target))
-                .font(.system(.caption2, design: .monospaced))
+                .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)
             if delta <= 0, event.mode == .dayCounter, let m = nextMilestone(dayCount: -delta + 1) {
                 Text("next: \(m.target) · \(m.daysAway) days")
-                    .font(.system(.caption2, design: .monospaced))
+                    .font(.system(.caption2, design: .rounded))
                     .foregroundStyle(.secondary)
             }
         }

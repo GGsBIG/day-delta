@@ -28,7 +28,7 @@ struct CategoryPickerView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(Color.black)
-        .font(.system(.body, design: .monospaced))
+        .font(.system(.body, design: .rounded))
         .foregroundStyle(.white)
         .navigationTitle("Category")
     }

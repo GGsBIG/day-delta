@@ -35,7 +35,7 @@ struct CategoryManagerView: View {
                 }
             }
         }
-        .font(.system(.body, design: .monospaced))
+        .font(.system(.body, design: .rounded))
         .scrollContentBackground(.hidden)
         .background(Color.black)
         .navigationTitle("Categories")
@@ -108,7 +108,7 @@ private struct CategoryEditSheet: View {
                 }
                 Section("Icon") { IconPicker(selection: $category.icon) }
             }
-            .font(.system(.body, design: .monospaced))
+            .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)
             .background(Color.black)
             .navigationTitle(category.name.isEmpty ? "New category" : category.name)

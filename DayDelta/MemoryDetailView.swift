@@ -31,22 +31,22 @@ struct MemoryDetailView: View {
                             .frame(width: 20, height: 20).foregroundStyle(.gray)
                     }
                     Text(event.title)
-                        .font(.system(.title3, design: .monospaced))
+                        .font(.system(.title3, design: .rounded))
                         .foregroundStyle(.gray)
                 }
                 Text(t.number)
-                    .font(.system(size: 96, weight: .bold, design: .monospaced))
+                    .font(.system(size: 96, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.3).lineLimit(1)
                 Text(event.label ?? t.subtitle)
-                    .font(.system(.title2, design: .monospaced))
+                    .font(.system(.title2, design: .rounded))
                     .foregroundStyle(.gray)
                 Text(dateLabel(target))
-                    .font(.system(.footnote, design: .monospaced))
+                    .font(.system(.footnote, design: .rounded))
                     .foregroundStyle(.secondary)
                 if let note = event.note {
                     Text(note)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(.body, design: .rounded))
                         .foregroundStyle(.white.opacity(0.9))
                         .padding(.top, 8)
                 }
@@ -55,7 +55,7 @@ struct MemoryDetailView: View {
                     .reduce(Decimal(0)) { $0 + $1.amount }
                 if spent > 0 {
                     Text("Spent " + formatMoney(spent))
-                        .font(.system(.callout, design: .monospaced))
+                        .font(.system(.callout, design: .rounded))
                         .foregroundStyle(.white.opacity(0.85))
                 }
                 Spacer()

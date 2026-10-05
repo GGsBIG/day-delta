@@ -34,7 +34,7 @@ struct LedgerView: View {
     var body: some View {
         NavigationStack {
             ledgerList
-            .background(Color.black)
+            .background(.clear)
             .navigationTitle("Ledger")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -95,11 +95,11 @@ struct LedgerView: View {
         let rows = txnsOn(txns, day: selectedDay).sorted { $0.date > $1.date }
         VStack(alignment: .leading, spacing: 10) {
             Text(dateLabel(selectedDay))
-                .font(.system(.subheadline, design: .monospaced))
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(.gray)
             if rows.isEmpty {
                 Text("No transactions")
-                    .font(.system(.callout, design: .monospaced))
+                    .font(.system(.callout, design: .rounded))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 12)
@@ -134,14 +134,14 @@ struct LedgerView: View {
         return HStack {
             Circle().fill(Color(hex: c?.colorHex ?? "#9CA3AF")).frame(width: 12, height: 12)
             VStack(alignment: .leading) {
-                Text(c?.name ?? "—").font(.system(.body, design: .monospaced))
+                Text(c?.name ?? "—").font(.system(.body, design: .rounded))
                 if let note = t.note {
                     Text(note).font(.caption).foregroundStyle(.gray)
                 }
             }
             Spacer()
             Text((t.type == .expense ? "-" : "+") + formatMoney(t.amount))
-                .font(.system(.body, design: .monospaced))
+                .font(.system(.body, design: .rounded))
                 .foregroundStyle(t.type == .expense ? .red : .green)
         }
     }

@@ -99,7 +99,7 @@ struct EventEditView: View {
                     }
                 }
             }
-            .font(.system(.body, design: .monospaced))
+            .font(.system(.body, design: .rounded))
             .scrollContentBackground(.hidden)
             .background(Color.black)
             .navigationTitle(event == nil ? "New" : "Edit")
@@ -152,7 +152,7 @@ struct EventEditView: View {
             label = value
         } label: {
             Text(title)
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.caption, design: .rounded))
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .background(selected ? Color.white : Color.white.opacity(0.1))
                 .foregroundStyle(selected ? Color.black : Color.white)
