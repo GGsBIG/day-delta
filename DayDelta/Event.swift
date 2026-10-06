@@ -94,15 +94,18 @@ extension Event {
 
 enum EventStore {
     private static let key = "daydelta.events"
+    private static var cache: [Event]?
 
     static func load() -> [Event] {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let events = try? JSONDecoder().decode([Event].self, from: data)
-        else { return [] }
+        if let cache { return cache }
+        let events = (UserDefaults.standard.data(forKey: key))
+            .flatMap { try? JSONDecoder().decode([Event].self, from: $0) } ?? []
+        cache = events
         return events
     }
 
     static func save(_ events: [Event]) {
+        cache = events
         guard let data = try? JSONEncoder().encode(events) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }

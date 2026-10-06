@@ -71,11 +71,16 @@ extension Account {
 
 enum AccountStore {
     private static let key = "daydelta.accounts"
+    // ponytail: in-memory cache so tab switches reuse the decoded array instead
+    // of decoding JSON from UserDefaults each time. Single process, main thread.
+    private static var cache: [Account]?
 
     static func load() -> [Account] {
+        if let cache { return cache }
         if let data = UserDefaults.standard.data(forKey: key),
            let accs = try? JSONDecoder().decode([Account].self, from: data),
            !accs.isEmpty {
+            cache = accs
             return accs
         }
         save(Account.builtins)
@@ -83,6 +88,7 @@ enum AccountStore {
     }
 
     static func save(_ accs: [Account]) {
+        cache = accs
         guard let data = try? JSONEncoder().encode(accs) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
@@ -90,15 +96,18 @@ enum AccountStore {
 
 enum TxnStore {
     private static let key = "daydelta.txns"
+    private static var cache: [Txn]?
 
     static func load() -> [Txn] {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let txns = try? JSONDecoder().decode([Txn].self, from: data)
-        else { return [] }
+        if let cache { return cache }
+        let txns = (UserDefaults.standard.data(forKey: key))
+            .flatMap { try? JSONDecoder().decode([Txn].self, from: $0) } ?? []
+        cache = txns
         return txns
     }
 
     static func save(_ txns: [Txn]) {
+        cache = txns
         guard let data = try? JSONEncoder().encode(txns) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
@@ -120,14 +129,17 @@ func migrateCategoryNames(_ cats: [Category]) -> [Category] {
 
 enum CategoryStore {
     private static let key = "daydelta.categories"
+    private static var cache: [Category]?
 
     /// Returns stored categories, seeding the built-ins on first run.
     static func load() -> [Category] {
+        if let cache { return cache }
         if let data = UserDefaults.standard.data(forKey: key),
            let cats = try? JSONDecoder().decode([Category].self, from: data),
            !cats.isEmpty {
             let migrated = migrateCategoryNames(cats)
             if migrated != cats { save(migrated) }   // one-time: persist English names
+            cache = migrated
             return migrated
         }
         save(Category.builtins)
@@ -135,6 +147,7 @@ enum CategoryStore {
     }
 
     static func save(_ cats: [Category]) {
+        cache = cats
         guard let data = try? JSONEncoder().encode(cats) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
