@@ -70,7 +70,7 @@ struct ContentView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
-            .background(ClearBackground())
+            .background(GrainientBackground().ignoresSafeArea())
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationTitle("DayDelta")
             .navigationDestination(item: $viewing) { event in

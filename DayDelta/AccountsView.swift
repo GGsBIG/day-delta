@@ -77,6 +77,7 @@ struct AccountsView: View {
             .animation(.snappy(duration: 0.45), value: period)
             .animation(.snappy(duration: 0.45), value: selected)
         }
+        .background(GrainientBackground().ignoresSafeArea())
         .preferredColorScheme(.dark)
         .tint(.white)
         .sheet(isPresented: $showingManage) {

@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 @main
 struct DayDeltaApp: App {
@@ -32,9 +31,10 @@ private struct RootView: View {
     var body: some View {
         let _ = bgHex   // subscribe to background-color changes so ink updates
         ZStack {
-            // One continuous animated grainient behind every page — pages are
-            // transparent and scroll over it, so the background never seams.
-            GrainientBackground().ignoresSafeArea()
+            // Static base behind the pager (cheap). Each page draws its own
+            // animated grainient on top; all share the same color + wall clock,
+            // so they render identical frames and paging looks seamless.
+            GrainientBackground(animated: false).ignoresSafeArea()
             pager
         }
         .safeAreaInset(edge: .bottom) { tabBar }
@@ -144,20 +144,4 @@ private struct RootView: View {
         }
         .buttonStyle(.plain)
     }
-}
-
-/// Clears the enclosing hosting/scroll view backgrounds so a shared backdrop
-/// behind the pager shows through a NavigationStack page (which otherwise paints
-/// an opaque system background). Apply as `.background(ClearBackground())`.
-struct ClearBackground: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
-        view.backgroundColor = .clear
-        DispatchQueue.main.async { [weak view] in
-            var s = view?.superview
-            while let sv = s { sv.backgroundColor = .clear; s = sv.superview }
-        }
-        return view
-    }
-    func updateUIView(_ uiView: UIView, context: Context) {}
 }

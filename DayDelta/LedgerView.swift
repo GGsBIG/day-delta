@@ -108,7 +108,7 @@ struct LedgerView: View {
     var body: some View {
         NavigationStack {
             ledgerList
-            .background(ClearBackground())
+            .background(GrainientBackground().ignoresSafeArea())
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationTitle("Ledger")
             .toolbar {
