@@ -16,10 +16,10 @@ struct DayDeltaApp: App {
 /// preservation (views reload from their stores on switch, which is cheap) for a
 /// directional slide + haptic. The slide direction follows the index delta.
 private struct RootView: View {
-    /// Highlight / Add-button / haptics follow this; mirrors the scroll position.
-    @State private var tab = 0
-    /// The paging scroll view's current page id (two-way bound).
-    @State private var scrolledTab: Int? = 0
+    /// Fractional page position (0…3). Both the content swipe and the tab-bar
+    /// drag drive this continuously, so pages follow the finger in real time.
+    @State private var progress: CGFloat = 0
+    @State private var dragAnchor: CGFloat? = nil
     @State private var barWidth: CGFloat = 0
     @State private var requestAddTxn = false
     @Namespace private var tabNS
@@ -27,6 +27,9 @@ private struct RootView: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     /// Accent color for the selected-tab highlight and Add button.
     @AppStorage("accentHex") private var accentHex = "#5227FF"
+
+    /// Nearest page — drives the highlight, Add button, and haptics.
+    private var tab: Int { Int(progress.rounded()) }
 
     var body: some View {
         let _ = bgHex   // subscribe to background-color changes so ink updates
@@ -41,27 +44,37 @@ private struct RootView: View {
         .sensoryFeedback(.selection, trigger: tab)
         .fontDesign(.rounded)
         .fontWeight(.thin)
-        // A settled swipe updates the page id; glide the highlight to match.
-        .onChange(of: scrolledTab) { _, new in
-            guard let new, new != tab else { return }
-            withAnimation(.bouncy(duration: 0.4)) { tab = new }
+    }
+
+    /// Custom offset pager: four full-width pages in a row, shifted by `progress`.
+    /// A horizontal drag scrubs it; vertical drags pass through to lists/scrolls
+    /// (simultaneousGesture + a horizontal gate), so nested scrolling still works.
+    private var pager: some View {
+        GeometryReader { geo in
+            let w = geo.size.width
+            HStack(spacing: 0) {
+                ForEach(0..<4, id: \.self) { i in page(i).frame(width: w) }
+            }
+            .frame(width: w * 4, alignment: .leading)
+            .offset(x: -progress * w)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 10)
+                    .onChanged { v in
+                        guard abs(v.translation.width) > abs(v.translation.height) else { return }
+                        if dragAnchor == nil { dragAnchor = progress }
+                        progress = clampPage((dragAnchor ?? progress) - v.translation.width / w)
+                    }
+                    .onEnded { v in
+                        let base = dragAnchor ?? progress
+                        dragAnchor = nil
+                        let predicted = base - v.predictedEndTranslation.width / w
+                        withAnimation(.snappy(duration: 0.35)) { progress = clampPage(predicted.rounded()) }
+                    }
+            )
         }
     }
 
-    /// Horizontal, snap-paging scroll of the four pages. No spacing = no gaps.
-    private var pager: some View {
-        ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
-                ForEach(0..<4, id: \.self) { i in
-                    page(i).containerRelativeFrame(.horizontal)
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollTargetBehavior(.paging)
-        .scrollPosition(id: $scrolledTab)
-        .scrollIndicators(.hidden)
-    }
+    private func clampPage(_ x: CGFloat) -> CGFloat { min(3, max(0, x)) }
 
     @ViewBuilder
     private func page(_ i: Int) -> some View {
@@ -73,10 +86,10 @@ private struct RootView: View {
         }
     }
 
-    /// Animate the pager to a page (from a tab tap or a tab-bar drag).
+    /// Animate to a page (from a tab tap).
     private func go(to i: Int) {
-        guard i >= 0, i <= 3, i != scrolledTab else { return }
-        withAnimation(.bouncy(duration: 0.45)) { scrolledTab = i }
+        guard i >= 0, i <= 3, CGFloat(i) != progress else { return }
+        withAnimation(.bouncy(duration: 0.45)) { progress = CGFloat(i) }
     }
 
     /// Glass pill: frosted capsule with circular icon buttons. The active tab's
@@ -98,14 +111,17 @@ private struct RootView: View {
                 .onAppear { barWidth = g.size.width }
                 .onChange(of: g.size.width) { _, w in barWidth = w }
         })
-        // Press-drag across the bar to scrub pages. simultaneousGesture so it
-        // works even over the buttons (which would otherwise swallow the touch);
-        // a tap doesn't move far enough to trigger it.
-        .simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { v in
-            guard barWidth > 0 else { return }
-            let i = min(3, max(0, Int(v.location.x / (barWidth / 4))))
-            if i != scrolledTab { go(to: i) }
-        })
+        // Press-drag across the bar to scrub pages in real time: the finger's x
+        // maps straight to the fractional page, so pages follow the finger.
+        // simultaneousGesture so it works even over the buttons; snaps on release.
+        .simultaneousGesture(DragGesture(minimumDistance: 8)
+            .onChanged { v in
+                guard barWidth > 0 else { return }
+                progress = clampPage(v.location.x / (barWidth / 4) - 0.5)
+            }
+            .onEnded { _ in
+                withAnimation(.snappy(duration: 0.3)) { progress = CGFloat(tab) }
+            })
         .liquidGlass(clear: true)
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
         .padding(.horizontal, 32)
