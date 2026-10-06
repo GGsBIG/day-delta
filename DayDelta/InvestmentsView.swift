@@ -28,7 +28,8 @@ struct InvestmentsView: View {
                 }
                 Button { editing = Holding(kind: investmentKinds[0].name, name: "",
                                            quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
-                    Image(systemName: "plus").foregroundStyle(Color.appInk)
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 28)).foregroundStyle(Color.appInk)
                 }
             }
             if holdings.isEmpty {
@@ -164,15 +165,17 @@ private struct HoldingEditSheet: View {
     let onSave: (Holding) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    @State private var qty: String
+    @State private var qty: String    // count of shares (odd lot) or lots (whole lot)
     @State private var cost: String
     @State private var price: String
+    @State private var showSearch = false
 
     init(holding: Holding, accounts: [Account], onSave: @escaping (Holding) -> Void) {
         _holding = State(initialValue: holding)
         self.accounts = accounts
         self.onSave = onSave
-        _qty = State(initialValue: holding.quantity == 0 ? "" : "\(holding.quantity)")
+        let count = holding.wholeLot ? holding.quantity / 1000 : holding.quantity
+        _qty = State(initialValue: count == 0 ? "" : "\(count)")
         _cost = State(initialValue: holding.costPerUnit == 0 ? "" : "\(holding.costPerUnit)")
         _price = State(initialValue: holding.currentPrice == 0 ? "" : "\(holding.currentPrice)")
     }
@@ -186,13 +189,23 @@ private struct HoldingEditSheet: View {
                             Label(k.name, systemImage: k.icon).tag(k.name)
                         }
                     }
-                    TextField("Name (e.g. Apple)", text: $holding.name)
-                    TextField("Symbol (AAPL · 2330.TW · BTC-USD · GC=F)", text: $holding.symbol)
-                        .textInputAutocapitalization(.characters).autocorrectionDisabled()
+                    Button { showSearch = true } label: {
+                        HStack {
+                            Text("Stock").foregroundStyle(Color.appInk)
+                            Spacer()
+                            Text(holding.symbol.isEmpty ? "Select" : "\(holding.name) · \(holding.symbol)")
+                                .foregroundStyle(.secondary).lineLimit(1)
+                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 Section("Position") {
-                    field("Quantity", $qty)
-                    field("Cost per unit", $cost)
+                    Picker("Lot", selection: $holding.wholeLot) {
+                        Text("Odd lot").tag(false)
+                        Text("Whole lot (×1000)").tag(true)
+                    }.pickerStyle(.segmented)
+                    field(holding.wholeLot ? "Lots" : "Shares", $qty)
+                    field("Cost per share", $cost)
                     field("Current price", $price)
                     DatePicker("Date", selection: $holding.date, displayedComponents: .date)
                 }
@@ -214,12 +227,23 @@ private struct HoldingEditSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        holding.name = holding.name.trimmingCharacters(in: .whitespaces)
-                        holding.quantity = Decimal(string: qty) ?? 0
+                        let count = Decimal(string: qty) ?? 0
+                        holding.quantity = holding.wholeLot ? count * 1000 : count
                         holding.costPerUnit = Decimal(string: cost) ?? 0
                         holding.currentPrice = Decimal(string: price) ?? 0
                         onSave(holding)
                         dismiss()
+                    }
+                }
+            }
+            .sheet(isPresented: $showSearch) {
+                StockSearchView { match in
+                    holding.symbol = match.symbol
+                    holding.name = match.name
+                    Task {
+                        if let p = await QuoteService.price(for: match.symbol) {
+                            price = "\(p)"; holding.currentPrice = p
+                        }
                     }
                 }
             }
@@ -235,6 +259,51 @@ private struct HoldingEditSheet: View {
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(maxWidth: 140)
+        }
+    }
+}
+
+/// Search instruments by name/symbol (Yahoo) and pick one — no manual typing.
+private struct StockSearchView: View {
+    let onPick: (SymbolMatch) -> Void
+    @State private var query = ""
+    @State private var results: [SymbolMatch] = []
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(results) { m in
+                Button { onPick(m); dismiss() } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(m.symbol).foregroundStyle(Color.appInk)
+                            Text(m.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        }
+                        Spacer()
+                        Text(m.exchange).font(.caption2).foregroundStyle(.secondary)
+                    }
+                }
+                .listRowBackground(Color.white.opacity(0.06))
+            }
+            .font(.system(.body, design: .rounded))
+            .scrollContentBackground(.hidden)
+            .background(GrainientBackground().ignoresSafeArea())
+            .overlay {
+                if results.isEmpty {
+                    ContentUnavailableView("Search a stock", systemImage: "magnifyingglass",
+                        description: Text("Type a name or symbol, e.g. Apple, 2330, BTC."))
+                }
+            }
+            .searchable(text: $query, prompt: "Name or symbol")
+            .navigationTitle("Select")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+        }
+        .preferredColorScheme(.dark).tint(.white)
+        .task(id: query) {
+            try? await Task.sleep(nanoseconds: 300_000_000)   // debounce
+            guard !Task.isCancelled else { return }
+            results = await QuoteService.search(query)
         }
     }
 }

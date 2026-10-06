@@ -103,13 +103,33 @@ struct Holding: Codable, Identifiable, Hashable {
     var kind: String          // instrument kind name, e.g. "US Stocks"
     var name: String          // display label, e.g. "Apple"
     var symbol: String = ""   // ticker for live quotes, e.g. "AAPL", "2330.TW"
-    var quantity: Decimal
+    var quantity: Decimal      // total shares (lots are expanded to shares)
     var costPerUnit: Decimal
     var currentPrice: Decimal
     var date: Date = .now
     var note: String?
     var accountID: UUID? = nil // funding account for the linked purchase txn
     var txnID: UUID? = nil     // linked investment expense txn (keeps saved in sync)
+    var wholeLot: Bool = false // bought in whole lots (×1000 shares) vs odd lots
+}
+
+/// One result from a symbol search (Yahoo). `name` is the company/instrument name.
+struct SymbolMatch: Identifiable, Hashable {
+    let symbol: String
+    let name: String
+    let exchange: String
+    var id: String { symbol }
+}
+
+/// Parses Yahoo Finance search JSON (`quotes[]`) into symbol matches. Pure.
+func parseSymbolSearch(_ data: Data) -> [SymbolMatch] {
+    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let quotes = root["quotes"] as? [[String: Any]] else { return [] }
+    return quotes.compactMap { q in
+        guard let symbol = q["symbol"] as? String, !symbol.isEmpty else { return nil }
+        let name = (q["shortname"] as? String) ?? (q["longname"] as? String) ?? symbol
+        return SymbolMatch(symbol: symbol, name: name, exchange: (q["exchange"] as? String) ?? "")
+    }
 }
 
 extension Holding {
