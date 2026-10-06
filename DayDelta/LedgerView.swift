@@ -38,6 +38,14 @@ extension Color {
         return String(format: "#%02X%02X%02X", Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
     }
 
+    /// "#RRGGBBAA" preserving alpha — for colors that can be transparent.
+    func toHexA() -> String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X%02X",
+                      Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)), Int(round(a * 255)))
+    }
+
     /// A lighter, slightly less saturated variant — used to build accent gradients.
     func lighter(_ amount: Double = 0.3) -> Color {
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
@@ -100,15 +108,25 @@ extension Color {
     }
 }
 
-/// "#RRGGBB" -> Color. Falls back to gray on a malformed string.
+/// "#RRGGBB" or "#RRGGBBAA" -> Color. Falls back to gray on a malformed string.
 extension Color {
     init(hex: String) {
         let s = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
-        guard s.count == 6, let v = UInt64(s, radix: 16) else { self = .gray; return }
-        self = Color(
-            red: Double((v >> 16) & 0xFF) / 255,
-            green: Double((v >> 8) & 0xFF) / 255,
-            blue: Double(v & 0xFF) / 255)
+        guard let v = UInt64(s, radix: 16) else { self = .gray; return }
+        if s.count == 8 {
+            self = Color(.sRGB,
+                red: Double((v >> 24) & 0xFF) / 255,
+                green: Double((v >> 16) & 0xFF) / 255,
+                blue: Double((v >> 8) & 0xFF) / 255,
+                opacity: Double(v & 0xFF) / 255)
+        } else if s.count == 6 {
+            self = Color(
+                red: Double((v >> 16) & 0xFF) / 255,
+                green: Double((v >> 8) & 0xFF) / 255,
+                blue: Double(v & 0xFF) / 255)
+        } else {
+            self = .gray
+        }
     }
 }
 
