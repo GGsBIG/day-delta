@@ -3,6 +3,26 @@ import SwiftUI
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
 
+extension View {
+    /// iOS 26 "Liquid Glass" background clipped to `shape`; frosted-material
+    /// fallback on older systems. Used for every panel so the app matches the
+    /// native glass look.
+    @ViewBuilder
+    func liquidGlass(_ shape: some Shape) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: shape)
+        } else {
+            self.background(shape.fill(.ultraThinMaterial))
+                .overlay(shape.stroke(.white.opacity(0.18)))
+        }
+    }
+
+    /// Rounded-rect liquid glass (default corner radius).
+    func liquidGlass(_ radius: CGFloat = UI.radius) -> some View {
+        liquidGlass(RoundedRectangle(cornerRadius: radius))
+    }
+}
+
 /// Relative luminance (WCAG) of a "#RRGGBB" color, 0 (black) … 1 (white).
 func relativeLuminance(_ hex: String) -> Double {
     let s = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex

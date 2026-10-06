@@ -71,8 +71,7 @@ struct AccountsView: View {
                 chips
                 card
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
+            .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .animation(.snappy(duration: 0.45), value: balance)
             .animation(.snappy(duration: 0.45), value: period)
@@ -131,16 +130,14 @@ struct AccountsView: View {
                 Image(systemName: "square.grid.2x2")
                     .font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.text)
                     .frame(width: 42, height: 42)
-                    .background(Circle().fill(.ultraThinMaterial))
-                    .overlay(Circle().strokeBorder(Palette.stroke))
+                    .liquidGlass(Circle())
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: selected)
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(Palette.stroke))
+        .liquidGlass()
     }
 
     // MARK: Balance block
@@ -182,15 +179,17 @@ struct AccountsView: View {
             ForEach(StatPeriod.allCases, id: \.self) { p in
                 let on = p == period
                 Button { period = p } label: {
-                    Text(p.label)
+                    let base = Text(p.label)
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(on ? .white : Palette.text)
                         .padding(.vertical, 11).padding(.horizontal, 22)
-                        .background(RoundedRectangle(cornerRadius: UI.radius).fill(on
-                            ? AnyShapeStyle(LinearGradient(colors: [Palette.accent, Palette.accent2],
-                                                           startPoint: .leading, endPoint: .trailing))
-                            : AnyShapeStyle(.ultraThinMaterial)))
-                        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(on ? .clear : Palette.stroke))
+                    if on {
+                        base.background(RoundedRectangle(cornerRadius: UI.radius).fill(LinearGradient(
+                            colors: [Palette.accent, Palette.accent2],
+                            startPoint: .leading, endPoint: .trailing)))
+                    } else {
+                        base.liquidGlass()
+                    }
                 }
                 .buttonStyle(.plain)
             }
@@ -242,9 +241,7 @@ struct AccountsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(Palette.stroke))
-        .padding(.bottom, 4)
+        .liquidGlass()
     }
 
     private func miniStat(_ title: String, _ value: Decimal) -> some View {
@@ -256,7 +253,7 @@ struct AccountsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: UI.radius).fill(Palette.subcard))
+        .liquidGlass()
     }
 
     // MARK: Derived labels & actions

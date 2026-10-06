@@ -87,8 +87,7 @@ private struct RootView: View {
             tabButton(3, "calendar")
         }
         .padding(6)
-        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.ultraThinMaterial))
-        .overlay(RoundedRectangle(cornerRadius: UI.radius).strokeBorder(Color.appInk.opacity(0.25)))
+        .liquidGlass()
         .shadow(color: .black.opacity(0.3), radius: 14, y: 6)
         .padding(.horizontal, 32)
         .padding(.bottom, 4)
