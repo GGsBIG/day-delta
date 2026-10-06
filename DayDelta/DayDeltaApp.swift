@@ -53,7 +53,12 @@ private struct RootView: View {
         GeometryReader { geo in
             let w = geo.size.width
             HStack(spacing: 0) {
-                ForEach(0..<4, id: \.self) { i in page(i).frame(width: w) }
+                ForEach(0..<4, id: \.self) { i in
+                    page(i).frame(width: w)
+                        // Anchor each page's background to the screen so the
+                        // grainient stays continuous across pages (no seam).
+                        .environment(\.bgOffsetX, (progress - CGFloat(i)) * w)
+                }
             }
             .frame(width: w * 4, alignment: .leading)
             .offset(x: -progress * w)

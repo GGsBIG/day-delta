@@ -361,6 +361,8 @@ struct GrainientBackground: View {
     var animated = true
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Set by the pager so the background stays screen-anchored during paging.
+    @Environment(\.bgOffsetX) private var bgOffsetX
 
     private typealias Geo = (base: (Double, Double), amp: (Double, Double),
                              speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
@@ -373,14 +375,18 @@ struct GrainientBackground: View {
 
     var body: some View {
         let p = palette(Color(hex: bgHex))
-        // Static when not animated or under Reduce Motion — one frame, no per-frame work.
-        if !animated || reduceMotion {
-            frame(p, t: 0)
-        } else {
-            TimelineView(.animation) { timeline in
-                frame(p, t: timeline.date.timeIntervalSinceReferenceDate)
+        Group {
+            // Static when not animated or under Reduce Motion — one frame, no per-frame work.
+            if !animated || reduceMotion {
+                frame(p, t: 0)
+            } else {
+                TimelineView(.animation) { timeline in
+                    frame(p, t: timeline.date.timeIntervalSinceReferenceDate)
+                }
             }
         }
+        // Shift to stay screen-anchored so paging reveals one continuous backdrop.
+        .offset(x: bgOffsetX)
     }
 
     /// One composited frame. `drawingGroup()` flattens the base gradient, the four

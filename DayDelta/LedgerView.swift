@@ -4,6 +4,17 @@ import UIKit
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
 
+/// How far to shift a page's grainient so it stays anchored to the screen while
+/// the page scrolls — set per page by the pager, 0 everywhere else. Keeps the
+/// background continuous (no seam) across paging.
+private struct BGOffsetKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
+extension EnvironmentValues {
+    var bgOffsetX: CGFloat {
+        get { self[BGOffsetKey.self] }
+        set { self[BGOffsetKey.self] = newValue }
+    }
+}
+
 extension Color {
     /// "#RRGGBB" for persisting a chosen color. Pairs with `Color(hex:)`.
     func toHex() -> String {
