@@ -20,7 +20,14 @@ struct AccountsView: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     /// Accent color for the tab highlight, chips, pill, and Add button.
     @AppStorage("accentHex") private var accentHex = "#5227FF"
+    /// Tint for the component frames (header, card, sub-cards, chips).
+    @AppStorage("panelHex") private var panelHex = "#FFFFFF"
     @State private var showingColors = false
+
+    /// Colored wash layered over the glass to tint the component frames.
+    private func panelTint() -> some View {
+        RoundedRectangle(cornerRadius: UI.radius).fill(Color(hex: panelHex).opacity(0.15))
+    }
 
     /// Text/graphic colors track the chosen background for maximum contrast.
     private enum Palette {
@@ -135,6 +142,7 @@ struct AccountsView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
         .frame(maxWidth: .infinity)
+        .background(panelTint())
         .liquidGlass()
     }
 
@@ -182,7 +190,7 @@ struct AccountsView: View {
                     if on {
                         base.background(RoundedRectangle(cornerRadius: UI.radius).fill(accentGradient(accentHex)))
                     } else {
-                        base.liquidGlass()
+                        base.background(panelTint()).liquidGlass()
                     }
                 }
                 .buttonStyle(.plain)
@@ -235,6 +243,7 @@ struct AccountsView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(panelTint())
         .liquidGlass()
     }
 
@@ -247,8 +256,8 @@ struct AccountsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        // A light tint instead of glass-on-glass, which would read too dark.
-        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.white.opacity(0.1)))
+        // The panel tint instead of glass-on-glass, which would read too dark.
+        .background(RoundedRectangle(cornerRadius: UI.radius).fill(Color(hex: panelHex).opacity(0.12)))
     }
 
     // MARK: Derived labels & actions
@@ -280,10 +289,12 @@ struct AccountsView: View {
 struct ColorSettingsView: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     @AppStorage("accentHex") private var accentHex = "#5227FF"
+    @AppStorage("panelHex") private var panelHex = "#FFFFFF"
     @Environment(\.dismiss) private var dismiss
 
     private var bg: Binding<Color> { Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() }) }
     private var accent: Binding<Color> { Binding(get: { Color(hex: accentHex) }, set: { accentHex = $0.toHex() }) }
+    private var panel: Binding<Color> { Binding(get: { Color(hex: panelHex) }, set: { panelHex = $0.toHex() }) }
 
     var body: some View {
         NavigationStack {
@@ -301,6 +312,15 @@ struct ColorSettingsView: View {
                     Text("Accent")
                 } footer: {
                     Text("Used for the selected tab, chips, the change pill, and the Add button.")
+                }
+                Section {
+                    ColorPicker(selection: panel, supportsOpacity: false) {
+                        Label("Panel color", systemImage: "square.on.square")
+                    }
+                } header: {
+                    Text("Panels")
+                } footer: {
+                    Text("Tints the Account page's cards and frames.")
                 }
             }
             .font(.system(.body, design: .rounded))
