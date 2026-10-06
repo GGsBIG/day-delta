@@ -4,7 +4,9 @@ import SwiftUI
 /// of holdings. Prices are entered by hand. Opened as a sheet from Accounts.
 struct InvestmentsView: View {
     @State private var holdings: [Holding] = HoldingStore.load()
+    @State private var accounts: [Account] = AccountStore.load()
     @State private var editing: Holding?
+    @State private var refreshing = false
     @Environment(\.dismiss) private var dismiss
 
     private var totalValue: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
@@ -29,14 +31,13 @@ struct InvestmentsView: View {
                             ForEach(holdings) { h in
                                 Button { editing = h } label: { row(h) }.buttonStyle(.plain)
                             }
-                            .onDelete { offsets in
-                                holdings.remove(atOffsets: offsets); HoldingStore.save(holdings)
-                            }
+                            .onDelete { offsets in delete(offsets) }
                             .listRowBackground(Color.white.opacity(0.06))
                         }
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
+                    .refreshable { await refreshQuotes() }
                 }
             }
             .background(GrainientBackground().ignoresSafeArea())
@@ -45,23 +46,81 @@ struct InvestmentsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button { editing = Holding(kind: investmentKinds[0].name, name: "",
-                                               quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
-                        Image(systemName: "plus")
+                    HStack {
+                        if refreshing { ProgressView() }
+                        else { Button { Task { await refreshQuotes() } } label: { Image(systemName: "arrow.clockwise") } }
+                        Button { editing = Holding(kind: investmentKinds[0].name, name: "",
+                                                   quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
             }
             .sheet(item: $editing) { h in
-                HoldingEditSheet(holding: h) { saved in
-                    if let i = holdings.firstIndex(where: { $0.id == saved.id }) { holdings[i] = saved }
-                    else { holdings.append(saved) }
-                    HoldingStore.save(holdings)
+                HoldingEditSheet(holding: h, accounts: accounts) { saved in
+                    upsert(saved)
                     editing = nil
                 }
             }
         }
         .preferredColorScheme(.dark).tint(.white)
-        .onAppear { holdings = HoldingStore.load() }
+        .onAppear {
+            holdings = HoldingStore.load()
+            accounts = AccountStore.load()
+        }
+        .task { await refreshQuotes() }
+    }
+
+    // MARK: Persistence + linked txn
+
+    /// Save a holding and upsert its linked investment expense txn so the cost
+    /// counts as "saved" (and shows in the Ledger).
+    private func upsert(_ h: Holding) {
+        var holding = h
+        var txns = TxnStore.load()
+        let cat = ensureInvestmentCategory()
+        if let tid = holding.txnID, let i = txns.firstIndex(where: { $0.id == tid }) {
+            txns[i].amount = holding.cost
+            txns[i].date = holding.date
+            txns[i].note = holding.name
+            txns[i].accountID = holding.accountID
+            txns[i].categoryID = cat.id
+        } else {
+            let t = Txn(type: .expense, amount: holding.cost, categoryID: cat.id,
+                        date: holding.date, note: holding.name, accountID: holding.accountID)
+            holding.txnID = t.id
+            txns.append(t)
+        }
+        TxnStore.save(txns)
+
+        if let i = holdings.firstIndex(where: { $0.id == holding.id }) { holdings[i] = holding }
+        else { holdings.append(holding) }
+        HoldingStore.save(holdings)
+    }
+
+    private func delete(_ offsets: IndexSet) {
+        let removed = offsets.map { holdings[$0] }
+        let txnIDs = Set(removed.compactMap(\.txnID))
+        if !txnIDs.isEmpty {
+            var txns = TxnStore.load()
+            txns.removeAll { txnIDs.contains($0.id) }
+            TxnStore.save(txns)
+        }
+        holdings.remove(atOffsets: offsets)
+        HoldingStore.save(holdings)
+    }
+
+    /// Pull live prices for every holding that has a symbol.
+    private func refreshQuotes() async {
+        guard holdings.contains(where: { !$0.symbol.isEmpty }) else { return }
+        refreshing = true
+        defer { refreshing = false }
+        for i in holdings.indices where !holdings[i].symbol.isEmpty {
+            if let p = await QuoteService.price(for: holdings[i].symbol) {
+                holdings[i].currentPrice = p
+            }
+        }
+        HoldingStore.save(holdings)
     }
 
     // MARK: Summary
@@ -107,6 +166,7 @@ struct InvestmentsView: View {
 /// Add / edit one holding. Decimal fields use the decimal keypad.
 private struct HoldingEditSheet: View {
     @State var holding: Holding
+    let accounts: [Account]
     let onSave: (Holding) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -114,8 +174,9 @@ private struct HoldingEditSheet: View {
     @State private var cost: String
     @State private var price: String
 
-    init(holding: Holding, onSave: @escaping (Holding) -> Void) {
+    init(holding: Holding, accounts: [Account], onSave: @escaping (Holding) -> Void) {
         _holding = State(initialValue: holding)
+        self.accounts = accounts
         self.onSave = onSave
         _qty = State(initialValue: holding.quantity == 0 ? "" : "\(holding.quantity)")
         _cost = State(initialValue: holding.costPerUnit == 0 ? "" : "\(holding.costPerUnit)")
@@ -131,13 +192,23 @@ private struct HoldingEditSheet: View {
                             Label(k.name, systemImage: k.icon).tag(k.name)
                         }
                     }
-                    TextField("Name (e.g. AAPL)", text: $holding.name)
+                    TextField("Name (e.g. Apple)", text: $holding.name)
+                    TextField("Symbol (AAPL · 2330.TW · BTC-USD · GC=F)", text: $holding.symbol)
+                        .textInputAutocapitalization(.characters).autocorrectionDisabled()
                 }
                 Section("Position") {
                     field("Quantity", $qty)
                     field("Cost per unit", $cost)
                     field("Current price", $price)
                     DatePicker("Date", selection: $holding.date, displayedComponents: .date)
+                }
+                Section {
+                    Picker("Funding account", selection: $holding.accountID) {
+                        Text("Unassigned").tag(UUID?.none)
+                        ForEach(accounts) { a in Text(a.name).tag(UUID?.some(a.id)) }
+                    }
+                } footer: {
+                    Text("Buying this holding records its cost as an investment expense, so it counts as saved (not spent).")
                 }
             }
             .font(.system(.body, design: .rounded))

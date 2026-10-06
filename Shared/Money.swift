@@ -96,16 +96,20 @@ enum AccountStore {
 
 // MARK: - Investments
 
-/// One investment holding. Prices are entered by hand (no live quotes).
+/// One investment holding. `currentPrice` can be refreshed from live quotes when
+/// a `symbol` is set, else entered by hand.
 struct Holding: Codable, Identifiable, Hashable {
     var id = UUID()
     var kind: String          // instrument kind name, e.g. "US Stocks"
-    var name: String          // user symbol/name, e.g. "AAPL"
+    var name: String          // display label, e.g. "Apple"
+    var symbol: String = ""   // ticker for live quotes, e.g. "AAPL", "2330.TW"
     var quantity: Decimal
     var costPerUnit: Decimal
     var currentPrice: Decimal
     var date: Date = .now
     var note: String?
+    var accountID: UUID? = nil // funding account for the linked purchase txn
+    var txnID: UUID? = nil     // linked investment expense txn (keeps saved in sync)
 }
 
 extension Holding {
@@ -148,6 +152,18 @@ enum HoldingStore {
         guard let data = try? JSONEncoder().encode(items) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
+}
+
+/// Pulls `chart.result[0].meta.regularMarketPrice` out of the Yahoo Finance v8
+/// chart JSON. Pure (no network) so it's unit-testable.
+func parseQuotePrice(_ data: Data) -> Decimal? {
+    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let chart = root["chart"] as? [String: Any],
+          let results = chart["result"] as? [[String: Any]],
+          let meta = results.first?["meta"] as? [String: Any],
+          let price = meta["regularMarketPrice"] as? Double
+    else { return nil }
+    return Decimal(price)
 }
 
 enum TxnStore {
@@ -207,6 +223,19 @@ enum CategoryStore {
         guard let data = try? JSONEncoder().encode(cats) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
+}
+
+/// The expense category used for investment purchases (so they count as saved,
+/// not spent). Returns the first investment-flagged expense category, creating a
+/// persisted "Investments" one if none exists.
+func ensureInvestmentCategory() -> Category {
+    var cats = CategoryStore.load()
+    if let c = cats.first(where: { $0.type == .expense && $0.isInvestment }) { return c }
+    let c = Category(name: "Investments", type: .expense, icon: "chart.line.uptrend.xyaxis",
+                     colorHex: "#A855F7", isInvestment: true)
+    cats.append(c)
+    CategoryStore.save(cats)
+    return c
 }
 
 // MARK: - Stats

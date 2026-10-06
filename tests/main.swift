@@ -177,6 +177,12 @@ assert(h.gain == 200)
 let loss = Holding(kind: "Gold", name: "XAU", quantity: 2, costPerUnit: 300, currentPrice: 250)
 assert(loss.gain == -100)
 
+// parseQuotePrice: pull regularMarketPrice out of Yahoo v8 chart JSON
+let quoteJSON = #"{"chart":{"result":[{"meta":{"regularMarketPrice":123.45}}],"error":null}}"#
+assert(parseQuotePrice(Data(quoteJSON.utf8)) == Decimal(123.45))
+assert(parseQuotePrice(Data(#"{"chart":{"result":[]}}"#.utf8)) == nil)
+assert(parseQuotePrice(Data("garbage".utf8)) == nil)
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
