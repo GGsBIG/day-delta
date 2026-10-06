@@ -119,6 +119,7 @@ struct ContentView: View {
     @ViewBuilder
     private func row(_ event: Event) -> some View {
         EventRow(event: event)
+            .legible()
             .listRowBackground(Color.clear)
             .contentShape(Rectangle())
             .onTapGesture { viewing = event }

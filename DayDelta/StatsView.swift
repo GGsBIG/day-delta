@@ -46,8 +46,8 @@ struct StatsView: View {
                             .padding(.top, 40)
                             .transition(.opacity)
                     } else {
-                        donut
-                        breakdownList
+                        donut.legible()
+                        breakdownList.legible()
                     }
                 }
                 .padding()

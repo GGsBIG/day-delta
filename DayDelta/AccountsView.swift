@@ -67,7 +67,7 @@ struct AccountsView: View {
         ZStack {
             VStack(alignment: .leading, spacing: 16) {
                 header
-                balanceBlock
+                balanceBlock.legible()
                 chips
                 card
             }
