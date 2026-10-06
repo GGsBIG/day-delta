@@ -139,7 +139,8 @@ private struct RootView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
-                .background(Circle().fill(accentGradient(accentHex)))
+                .background(RoundedRectangle(cornerRadius: UI.radius)
+                    .fill(accentGradient(accentHex)).padding(3))
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact, trigger: requestAddTxn)
