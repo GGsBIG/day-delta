@@ -98,8 +98,10 @@ private struct RootView: View {
                 .onAppear { barWidth = g.size.width }
                 .onChange(of: g.size.width) { _, w in barWidth = w }
         })
-        // Press-drag across the bar to scrub pages.
-        .gesture(DragGesture(minimumDistance: 10).onChanged { v in
+        // Press-drag across the bar to scrub pages. simultaneousGesture so it
+        // works even over the buttons (which would otherwise swallow the touch);
+        // a tap doesn't move far enough to trigger it.
+        .simultaneousGesture(DragGesture(minimumDistance: 10).onChanged { v in
             guard barWidth > 0 else { return }
             let i = min(3, max(0, Int(v.location.x / (barWidth / 4))))
             if i != scrolledTab { go(to: i) }
