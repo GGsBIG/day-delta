@@ -1,20 +1,22 @@
 import SwiftUI
 import UIKit
 
-/// A category's badge: its color disc with its SF Symbol icon (if any). Shared by
-/// the ledger, stats, and category manager.
+/// A category's mark, in its color: the SF Symbol glyph if set (no background),
+/// else a small dot. Shared by the ledger, stats, and category manager.
 struct CategoryBadge: View {
     let category: Category
     var size: CGFloat = 28
     var body: some View {
-        Circle().fill(Color(hex: category.colorHex))
-            .frame(width: size, height: size)
-            .overlay {
-                if let icon = category.icon, UIImage(systemName: icon) != nil {
-                    Image(systemName: icon).font(.system(size: size * 0.5))
-                        .foregroundStyle(.white)
-                }
+        let color = Color(hex: category.colorHex)
+        Group {
+            if let icon = category.icon, UIImage(systemName: icon) != nil {
+                Image(systemName: icon).font(.system(size: size * 0.8))
+                    .foregroundStyle(color)
+            } else {
+                Circle().fill(color).frame(width: size * 0.45, height: size * 0.45)
             }
+        }
+        .frame(width: size, height: size)
     }
 }
 
@@ -23,19 +25,26 @@ struct CategoryIconPicker: View {
     @Binding var selection: String?
     private let cols = [GridItem(.adaptive(minimum: 46), spacing: 10)]
     var body: some View {
-        LazyVGrid(columns: cols, spacing: 10) {
-            ForEach(categoryIconNames, id: \.self) { name in
-                let on = selection == name
-                Image(systemName: name)
-                    .font(.system(size: 18))
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(on ? .white : Color.appInk)
-                    .background(RoundedRectangle(cornerRadius: UI.radius)
-                        .fill(on ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.appInk.opacity(0.08))))
-                    .contentShape(RoundedRectangle(cornerRadius: UI.radius))
-                    .onTapGesture { selection = on ? nil : name }
+        // ~200 icons would make the form section huge; scroll within a fixed box.
+        // Only show symbols the running OS actually has, so no cell is ever blank.
+        let names = categoryIconNames.filter { UIImage(systemName: $0) != nil }
+        ScrollView {
+            LazyVGrid(columns: cols, spacing: 10) {
+                ForEach(names, id: \.self) { name in
+                    let on = selection == name
+                    Image(systemName: name)
+                        .font(.system(size: 18))
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(on ? .white : Color.appInk)
+                        .background(RoundedRectangle(cornerRadius: UI.radius)
+                            .fill(on ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.appInk.opacity(0.08))))
+                        .contentShape(RoundedRectangle(cornerRadius: UI.radius))
+                        .onTapGesture { selection = on ? nil : name }
+                }
             }
+            .padding(.vertical, 4)
         }
+        .frame(height: 260)
     }
 }
 

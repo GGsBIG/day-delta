@@ -6,18 +6,76 @@ let eventIconNames = [
     "ic-book", "ic-briefcase", "ic-ring", "ic-target", "ic-clock", "ic-graduation",
 ]
 
-/// SF Symbols offered for categories (rendered with Image(systemName:)). ~30 to
-/// pick from when creating a custom category.
+/// SF Symbols offered for categories (rendered with Image(systemName:)). ~200
+/// well-known symbols grouped by theme to pick from for a custom category.
 let categoryIconNames = [
-    "fork.knife", "cup.and.saucer.fill", "cart.fill", "bag.fill",
-    "car.fill", "bus.fill", "fuelpump.fill", "airplane",
-    "house.fill", "bed.double.fill", "bolt.fill", "drop.fill",
-    "wifi", "phone.fill", "gamecontroller.fill", "film.fill",
-    "music.note", "book.fill", "graduationcap.fill", "pawprint.fill",
-    "cross.case.fill", "pills.fill", "dumbbell.fill", "tshirt.fill",
-    "scissors", "wrench.and.screwdriver.fill", "gift.fill", "creditcard.fill",
-    "dollarsign.circle.fill", "building.columns.fill", "chart.line.uptrend.xyaxis", "briefcase.fill",
-    "ellipsis.circle.fill",
+    // Food & drink
+    "fork.knife", "cup.and.saucer.fill", "mug.fill", "wineglass.fill",
+    "takeoutbag.and.cup.and.straw.fill", "birthday.cake.fill", "carrot.fill",
+    "fish.fill", "popcorn.fill", "waterbottle.fill", "frying.pan.fill", "cupcake",
+    // Shopping
+    "cart.fill", "bag.fill", "basket.fill", "handbag.fill", "giftcard.fill",
+    "tag.fill", "barcode", "shippingbox.fill", "creditcard.fill", "wallet.pass.fill",
+    // Money & finance
+    "dollarsign.circle.fill", "centsign.circle.fill", "eurosign.circle.fill",
+    "yensign.circle.fill", "sterlingsign.circle.fill", "bitcoinsign.circle.fill",
+    "banknote.fill", "building.columns.fill", "chart.line.uptrend.xyaxis",
+    "chart.pie.fill", "chart.bar.fill", "percent", "coloncurrencysign.circle.fill",
+    "arrow.up.arrow.down.circle.fill", "giftcard", "piggybank.fill",
+    // Transport
+    "car.fill", "car.2.fill", "bus.fill", "tram.fill", "bicycle", "scooter",
+    "fuelpump.fill", "airplane", "ferry.fill", "sailboat.fill", "fuelpump.circle.fill",
+    "parkingsign.circle.fill", "road.lanes", "truck.box.fill", "motorcycle",
+    "figure.walk", "tram.circle.fill", "cablecar.fill",
+    // Home & utilities
+    "house.fill", "house.circle.fill", "bed.double.fill", "sofa.fill", "lamp.table.fill",
+    "lightbulb.fill", "bolt.fill", "drop.fill", "flame.fill", "humidity.fill",
+    "washer.fill", "refrigerator.fill", "shower.fill", "toilet.fill", "sink.fill",
+    "wifi", "spigot.fill", "key.fill", "wrench.and.screwdriver.fill", "hammer.fill",
+    "paintbrush.fill", "paintroller.fill", "trash.fill", "leaf.fill",
+    // Health & fitness
+    "cross.case.fill", "pills.fill", "heart.fill", "bandage.fill", "stethoscope",
+    "cross.fill", "dumbbell.fill", "figure.run", "figure.strengthtraining.traditional",
+    "figure.yoga", "figure.pool.swim", "figure.cooldown", "bolt.heart.fill",
+    "lungs.fill", "brain.head.profile", "tooth.fill", "eye.fill", "eyeglasses",
+    "waveform.path.ecg", "syringe.fill", "testtube.2",
+    // Beauty & apparel
+    "tshirt.fill", "shoe.fill", "comb.fill", "scissors", "handbag", "hanger",
+    "sunglasses.fill", "crown.fill", "sparkles",
+    // Tech & devices
+    "iphone", "ipad", "macbook", "applewatch", "headphones", "airpods",
+    "desktopcomputer", "tv.fill", "gamecontroller.fill", "keyboard.fill",
+    "printer.fill", "camera.fill", "video.fill", "phone.fill", "simcard.fill",
+    "externaldrive.fill", "server.rack", "antenna.radiowaves.left.and.right",
+    "wifi.router.fill", "battery.100", "powerplug.fill", "cpu.fill",
+    // Entertainment & media
+    "music.note", "music.mic", "film.fill", "popcorn", "theatermasks.fill",
+    "ticket.fill", "guitars.fill", "pianokeys", "paintpalette.fill", "photo.fill",
+    "play.rectangle.fill", "dice.fill", "puzzlepiece.fill", "books.vertical.fill",
+    "book.fill", "newspaper.fill", "radio.fill", "headphones.circle.fill",
+    // Travel & places
+    "map.fill", "mappin.and.ellipse", "globe.americas.fill", "beach.umbrella.fill",
+    "tent.fill", "mountain.2.fill", "building.2.fill", "suitcase.fill",
+    "backpack.fill", "binoculars.fill", "camera.viewfinder", "signpost.right.fill",
+    "location.fill", "airplane.departure",
+    // Nature & weather
+    "sun.max.fill", "cloud.fill", "cloud.rain.fill", "snowflake", "wind",
+    "moon.stars.fill", "tree.fill", "pawprint.fill", "tortoise.fill", "bird.fill",
+    "ant.fill", "ladybug.fill", "fossil.shell.fill", "camera.macro", "sparkle",
+    // People & activities
+    "person.fill", "person.2.fill", "person.3.fill", "figure.and.child.holdinghands",
+    "hands.clap.fill", "hand.thumbsup.fill", "gift.fill", "balloon.fill",
+    "party.popper.fill", "fireworks", "trophy.fill", "medal.fill", "flag.fill",
+    "bell.fill", "megaphone.fill", "bubble.left.and.bubble.right.fill",
+    // Work & education
+    "briefcase.fill", "case.fill", "graduationcap.fill", "studentdesk",
+    "pencil.and.ruler.fill", "ruler.fill", "paperclip", "folder.fill",
+    "doc.fill", "calendar", "clock.fill", "envelope.fill", "building.fill",
+    "lightbulb.max.fill", "function", "text.book.closed.fill",
+    // Misc & symbols
+    "gearshape.fill", "gift.circle.fill", "shield.fill", "lock.fill", "bell.badge.fill",
+    "star.fill", "bookmark.fill", "pin.fill", "flame.circle.fill", "cube.fill",
+    "shippingbox.circle.fill", "ellipsis.circle.fill",
 ]
 
 /// Whole-day difference between two dates, each normalized to start-of-day.
