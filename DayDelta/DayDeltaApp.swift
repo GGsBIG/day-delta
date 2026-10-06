@@ -11,10 +11,9 @@ struct DayDeltaApp: App {
     }
 }
 
-/// Custom tab container. Tabs: Accounts(0, default) / Ledger(1) / Stats(2) / Days(3).
-/// ponytail: a plain TabView can't animate its content swap; this trades tab state
-/// preservation (views reload from their stores on switch, which is cheap) for a
-/// directional slide + haptic. The slide direction follows the index delta.
+/// Custom tab container. Tabs: Accounts(0) / Ledger(1) / Stats(2) / Days(3) / Invest(4).
+/// A custom offset pager over one shared, fixed grainient background: transparent
+/// pages follow the finger (content swipe + tab-bar drag), snapping on release.
 private struct RootView: View {
     /// Fractional page position (0…3). Both the content swipe and the tab-bar
     /// drag drive this continuously, so pages follow the finger in real time.
