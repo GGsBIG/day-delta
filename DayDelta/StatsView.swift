@@ -58,7 +58,7 @@ struct StatsView: View {
                 .sensoryFeedback(.selection, trigger: type)
             }
             .scrollContentBackground(.hidden)
-            .background(GrainientBackground().ignoresSafeArea())
+            .background(ClearBackground())
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationTitle("Stats")
         }

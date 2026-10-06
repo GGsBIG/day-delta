@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct DayDeltaApp: App {
@@ -16,8 +17,11 @@ struct DayDeltaApp: App {
 /// preservation (views reload from their stores on switch, which is cheap) for a
 /// directional slide + haptic. The slide direction follows the index delta.
 private struct RootView: View {
+    /// Highlight / Add-button / haptics follow this; mirrors the scroll position.
     @State private var tab = 0
-    @State private var prevTab = 0
+    /// The paging scroll view's current page id (two-way bound).
+    @State private var scrolledTab: Int? = 0
+    @State private var barWidth: CGFloat = 0
     @State private var requestAddTxn = false
     @Namespace private var tabNS
     /// Observed so the tab bar's ink recomputes when the background color changes.
@@ -25,57 +29,54 @@ private struct RootView: View {
     /// Accent color for the selected-tab highlight and Add button.
     @AppStorage("accentHex") private var accentHex = "#5227FF"
 
-    /// Horizontal slide whose direction follows whether we moved to a higher or
-    /// lower tab index — new page in from the far side, old page out the near side.
-    private var slide: AnyTransition {
-        let forward = tab >= prevTab
-        return .asymmetric(
-            insertion: .move(edge: forward ? .trailing : .leading).combined(with: .opacity),
-            removal: .move(edge: forward ? .leading : .trailing).combined(with: .opacity))
-    }
-
     var body: some View {
         let _ = bgHex   // subscribe to background-color changes so ink updates
         ZStack {
-            // Continuous static grainient behind the sliding tabs, so switching
-            // reveals matching backdrop (no hard color flash) while each tab's own
-            // animated grainient rides on top. Static = no extra per-frame work.
-            GrainientBackground(animated: false).ignoresSafeArea()
-            content
-                .id(tab)
-                .transition(slide)
+            // One continuous animated grainient behind every page — pages are
+            // transparent and scroll over it, so the background never seams.
+            GrainientBackground().ignoresSafeArea()
+            pager
         }
         .safeAreaInset(edge: .bottom) { tabBar }
         .sensoryFeedback(.selection, trigger: tab)
         .fontDesign(.rounded)
         .fontWeight(.thin)
-        // Swipe left/right anywhere to move between tabs.
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 24)
-                .onEnded { v in
-                    guard abs(v.translation.width) > 70,
-                          abs(v.translation.width) > abs(v.translation.height) * 1.3 else { return }
-                    switchTab(by: v.translation.width < 0 ? 1 : -1)
-                }
-        )
+        // A settled swipe updates the page id; glide the highlight to match.
+        .onChange(of: scrolledTab) { _, new in
+            guard let new, new != tab else { return }
+            withAnimation(.bouncy(duration: 0.4)) { tab = new }
+        }
     }
 
-    /// Step the active tab, clamped to 0...3, with the directional slide.
-    private func switchTab(by delta: Int) {
-        let next = tab + delta
-        guard next >= 0, next <= 3, next != tab else { return }
-        prevTab = tab
-        withAnimation(.bouncy(duration: 0.5)) { tab = next }
+    /// Horizontal, snap-paging scroll of the four pages. No spacing = no gaps.
+    private var pager: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEach(0..<4, id: \.self) { i in
+                    page(i).containerRelativeFrame(.horizontal)
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .scrollTargetBehavior(.paging)
+        .scrollPosition(id: $scrolledTab)
+        .scrollIndicators(.hidden)
     }
 
     @ViewBuilder
-    private var content: some View {
-        switch tab {
+    private func page(_ i: Int) -> some View {
+        switch i {
         case 0:  AccountsView()
         case 1:  LedgerView(requestAddTxn: $requestAddTxn)
         case 2:  StatsView()
         default: ContentView()
         }
+    }
+
+    /// Animate the pager to a page (from a tab tap or a tab-bar drag).
+    private func go(to i: Int) {
+        guard i >= 0, i <= 3, i != scrolledTab else { return }
+        withAnimation(.bouncy(duration: 0.45)) { scrolledTab = i }
     }
 
     /// Glass pill: frosted capsule with circular icon buttons. The active tab's
@@ -92,6 +93,17 @@ private struct RootView: View {
             tabButton(3, "calendar")
         }
         .padding(6)
+        .background(GeometryReader { g in
+            Color.clear
+                .onAppear { barWidth = g.size.width }
+                .onChange(of: g.size.width) { _, w in barWidth = w }
+        })
+        // Press-drag across the bar to scrub pages.
+        .gesture(DragGesture(minimumDistance: 10).onChanged { v in
+            guard barWidth > 0 else { return }
+            let i = min(3, max(0, Int(v.location.x / (barWidth / 4))))
+            if i != scrolledTab { go(to: i) }
+        })
         .liquidGlass(clear: true)
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
         .padding(.horizontal, 32)
@@ -115,11 +127,7 @@ private struct RootView: View {
     }
 
     private func tabButton(_ i: Int, _ icon: String) -> some View {
-        Button {
-            guard tab != i else { return }
-            prevTab = tab
-            withAnimation(.bouncy(duration: 0.5)) { tab = i }
-        } label: {
+        Button { go(to: i) } label: {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(tab == i ? .white : Color.appInk.opacity(0.55))
@@ -136,4 +144,20 @@ private struct RootView: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+/// Clears the enclosing hosting/scroll view backgrounds so a shared backdrop
+/// behind the pager shows through a NavigationStack page (which otherwise paints
+/// an opaque system background). Apply as `.background(ClearBackground())`.
+struct ClearBackground: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        DispatchQueue.main.async { [weak view] in
+            var s = view?.superview
+            while let sv = s { sv.backgroundColor = .clear; s = sv.superview }
+        }
+        return view
+    }
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }
