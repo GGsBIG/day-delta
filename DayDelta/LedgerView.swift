@@ -4,14 +4,29 @@ import UIKit
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
 
-/// How far to shift a page's grainient so it stays anchored to the screen while
-/// the page scrolls — set per page by the pager, 0 everywhere else. Keeps the
-/// background continuous (no seam) across paging.
-private struct BGOffsetKey: EnvironmentKey { static let defaultValue: CGFloat = 0 }
-extension EnvironmentValues {
-    var bgOffsetX: CGFloat {
-        get { self[BGOffsetKey.self] }
-        set { self[BGOffsetKey.self] = newValue }
+/// A transparent page header: a large title with optional trailing controls.
+/// Replaces NavigationStack chrome on the paged tabs so they stay see-through and
+/// the single root background shows behind every page.
+struct PageHeader<Trailing: View>: View {
+    let title: String
+    @ViewBuilder var trailing: Trailing
+
+    init(_ title: String, @ViewBuilder trailing: () -> Trailing = { EmptyView() }) {
+        self.title = title
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.system(.largeTitle, design: .rounded)).fontWeight(.bold)
+                .foregroundStyle(Color.appInk)
+            Spacer()
+            trailing
+        }
+        .padding(.horizontal)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 }
 
@@ -117,35 +132,30 @@ struct LedgerView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            PageHeader("Ledger") {
+                Button("Edit") { managing = true }.foregroundStyle(Color.appInk)
+            }
             ledgerList
-            .background(GrainientBackground().ignoresSafeArea())
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationTitle("Ledger")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Edit") { managing = true }
+        }
+        .sheet(isPresented: $requestAddTxn) {
+            TxnEditView(txn: nil, categories: categories, accounts: accounts,
+                        defaultDate: selectedDay) { saved in
+                txns.append(saved); persist()
+            }
+        }
+        .sheet(item: $editingTxn) { t in
+            TxnEditView(txn: t, categories: categories, accounts: accounts) { saved in
+                if let i = txns.firstIndex(where: { $0.id == saved.id }) { txns[i] = saved }
+                persist()
+            }
+        }
+        .sheet(isPresented: $managing) {
+            ManageView(categories: $categories, accounts: $accounts)
+                .onDisappear {
+                    CategoryStore.save(categories)
+                    AccountStore.save(accounts)
                 }
-            }
-            .sheet(isPresented: $requestAddTxn) {
-                TxnEditView(txn: nil, categories: categories, accounts: accounts,
-                            defaultDate: selectedDay) { saved in
-                    txns.append(saved); persist()
-                }
-            }
-            .sheet(item: $editingTxn) { t in
-                TxnEditView(txn: t, categories: categories, accounts: accounts) { saved in
-                    if let i = txns.firstIndex(where: { $0.id == saved.id }) { txns[i] = saved }
-                    persist()
-                }
-            }
-            .sheet(isPresented: $managing) {
-                ManageView(categories: $categories, accounts: $accounts)
-                    .onDisappear {
-                        CategoryStore.save(categories)
-                        AccountStore.save(accounts)
-                    }
-            }
         }
         // Pick up changes made by Backup import in the other tab.
         .onAppear {

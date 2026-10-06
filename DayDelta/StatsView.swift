@@ -25,7 +25,8 @@ struct StatsView: View {
     private var total: Decimal { breakdown.reduce(0) { $0 + $1.total } }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            PageHeader("Stats")
             ScrollView {
                 VStack(spacing: 24) {
                     Picker("Period", selection: $period) {
@@ -58,9 +59,6 @@ struct StatsView: View {
                 .sensoryFeedback(.selection, trigger: type)
             }
             .scrollContentBackground(.hidden)
-            .background(GrainientBackground().ignoresSafeArea())
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationTitle("Stats")
         }
         .preferredColorScheme(.dark)
         .tint(.white)

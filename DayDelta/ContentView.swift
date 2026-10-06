@@ -10,6 +10,7 @@ struct ContentView: View {
     @State private var importing = false
     @AppStorage("autoSort") private var autoSort = false
     @Environment(\.scenePhase) private var scenePhase
+    @State private var editMode: EditMode = .inactive
 
     private var anniversaries: [Event] {
         events.filter { isAnniversaryToday($0.targetDate) }
@@ -25,7 +26,20 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            PageHeader("DayDelta") {
+                if !autoSort {
+                    Button(editMode.isEditing ? "Done" : "Edit") {
+                        withAnimation { editMode = editMode.isEditing ? .inactive : .active }
+                    }.foregroundStyle(Color.appInk)
+                }
+                Menu {
+                    Toggle("Auto sort by date", isOn: $autoSort)
+                    Button { exporting = true } label: { Label("Export…", systemImage: "square.and.arrow.up") }
+                    Button { importing = true } label: { Label("Import…", systemImage: "square.and.arrow.down") }
+                } label: { Image(systemName: "ellipsis.circle").foregroundStyle(Color.appInk) }
+                Button { showingAdd = true } label: { Image(systemName: "plus").foregroundStyle(Color.appInk) }
+            }
             Group {
                 if events.isEmpty {
                     ContentUnavailableView("No events",
@@ -68,27 +82,7 @@ struct ContentView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                }
-            }
-            .background(GrainientBackground().ignoresSafeArea())
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationTitle("DayDelta")
-            .navigationDestination(item: $viewing) { event in
-                MemoryDetailView(event: event, onUpdate: updateEvent)
-            }
-            .toolbar {
-                if !autoSort {
-                    ToolbarItem(placement: .topBarLeading) { EditButton() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Toggle("Auto sort by date", isOn: $autoSort)
-                        Button { exporting = true } label: { Label("Export…", systemImage: "square.and.arrow.up") }
-                        Button { importing = true } label: { Label("Import…", systemImage: "square.and.arrow.down") }
-                    } label: { Image(systemName: "ellipsis.circle") }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAdd = true } label: { Image(systemName: "plus") }
+                    .environment(\.editMode, $editMode)
                 }
             }
         }
@@ -96,6 +90,17 @@ struct ContentView: View {
         .onAppear { Notifications.requestAuthIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Notifications.sync(events) }
+        }
+        .fullScreenCover(item: $viewing) { event in
+            NavigationStack {
+                MemoryDetailView(event: event, onUpdate: updateEvent)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button("Close") { viewing = nil }
+                        }
+                    }
+            }
+            .preferredColorScheme(.dark).tint(.white)
         }
         .sheet(item: $sharingEvent) { event in ShareSheet(event: event) }
         .fileExporter(isPresented: $exporting,

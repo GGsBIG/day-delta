@@ -34,9 +34,8 @@ private struct RootView: View {
     var body: some View {
         let _ = bgHex   // subscribe to background-color changes so ink updates
         ZStack {
-            // Full-screen animated grainient behind the pager. Each page also draws
-            // its own screen-anchored grainient (same image), so any tiny gap at a
-            // page edge during a swipe shows this identical backdrop — never black.
+            // One fixed animated grainient behind everything. Pages are transparent
+            // and slide over it, so the background never seams or flashes black.
             GrainientBackground().ignoresSafeArea()
             pager
         }
@@ -55,9 +54,6 @@ private struct RootView: View {
             HStack(spacing: 0) {
                 ForEach(0..<4, id: \.self) { i in
                     page(i).frame(width: w)
-                        // Anchor each page's background to the screen so the
-                        // grainient stays continuous across pages (no seam).
-                        .environment(\.bgOffsetX, (progress - CGFloat(i)) * w)
                 }
             }
             .frame(width: w * 4, alignment: .leading)
