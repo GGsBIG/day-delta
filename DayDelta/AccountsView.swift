@@ -389,9 +389,10 @@ struct GrainientBackground: View {
         .offset(x: bgOffsetX)
     }
 
-    /// One composited frame. `drawingGroup()` flattens the base gradient, the four
-    /// blended blobs, the contrast pass and the grain overlay into a single Metal
-    /// render instead of several offscreen passes — much cheaper per frame.
+    /// One composited frame. `compositingGroup()` isolates the blend modes (so the
+    /// blobs blend against the base, not the screen) without `drawingGroup`'s
+    /// per-frame offscreen rasterization — which flickered black during the
+    /// animated offset.
     private func frame(_ p: (top: Color, bottom: Color, blobs: [Color]), t: Double) -> some View {
         ZStack {
             LinearGradient(colors: [p.top, p.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -406,7 +407,7 @@ struct GrainientBackground: View {
         }
         .contrast(1.5)
         .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
-        .drawingGroup()
+        .compositingGroup()
         .ignoresSafeArea()
     }
 
