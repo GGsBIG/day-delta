@@ -52,11 +52,11 @@ private struct RootView: View {
         GeometryReader { geo in
             let w = geo.size.width
             HStack(spacing: 0) {
-                ForEach(0..<4, id: \.self) { i in
+                ForEach(0..<5, id: \.self) { i in
                     page(i).frame(width: w)
                 }
             }
-            .frame(width: w * 4, alignment: .leading)
+            .frame(width: w * 5, alignment: .leading)
             .offset(x: -progress * w)
             .simultaneousGesture(
                 DragGesture(minimumDistance: 10)
@@ -75,7 +75,7 @@ private struct RootView: View {
         }
     }
 
-    private func clampPage(_ x: CGFloat) -> CGFloat { min(3, max(0, x)) }
+    private func clampPage(_ x: CGFloat) -> CGFloat { min(4, max(0, x)) }
 
     @ViewBuilder
     private func page(_ i: Int) -> some View {
@@ -83,13 +83,14 @@ private struct RootView: View {
         case 0:  AccountsView()
         case 1:  LedgerView(requestAddTxn: $requestAddTxn)
         case 2:  StatsView()
-        default: ContentView()
+        case 3:  ContentView()
+        default: InvestmentsView()
         }
     }
 
     /// Animate to a page (from a tab tap).
     private func go(to i: Int) {
-        guard i >= 0, i <= 3, CGFloat(i) != progress else { return }
+        guard i >= 0, i <= 4, CGFloat(i) != progress else { return }
         withAnimation(.bouncy(duration: 0.45)) { progress = CGFloat(i) }
     }
 
@@ -105,6 +106,7 @@ private struct RootView: View {
             }
             tabButton(2, "chart.pie")
             tabButton(3, "calendar")
+            tabButton(4, "chart.line.uptrend.xyaxis")
         }
         .padding(6)
         .background(GeometryReader { g in
@@ -118,7 +120,7 @@ private struct RootView: View {
         .simultaneousGesture(DragGesture(minimumDistance: 8)
             .onChanged { v in
                 guard barWidth > 0 else { return }
-                progress = clampPage(v.location.x / (barWidth / 4) - 0.5)
+                progress = clampPage(v.location.x / (barWidth / 5) - 0.5)
             }
             .onEnded { _ in
                 withAnimation(.snappy(duration: 0.3)) { progress = CGFloat(tab) }

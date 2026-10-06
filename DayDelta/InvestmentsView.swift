@@ -7,7 +7,6 @@ struct InvestmentsView: View {
     @State private var accounts: [Account] = AccountStore.load()
     @State private var editing: Holding?
     @State private var refreshing = false
-    @Environment(\.dismiss) private var dismiss
 
     private var totalValue: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
     private var totalCost: Decimal { holdings.reduce(0) { $0 + $1.cost } }
@@ -19,51 +18,46 @@ struct InvestmentsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if holdings.isEmpty {
-                    ContentUnavailableView("No investments", systemImage: "chart.line.uptrend.xyaxis",
-                        description: Text("Tap + to add a holding."))
-                } else {
-                    List {
-                        Section { summary.listRowBackground(Color.clear) }
-                        Section("Holdings") {
-                            ForEach(holdings) { h in
-                                Button { editing = h } label: { row(h) }.buttonStyle(.plain)
-                            }
-                            .onDelete { offsets in delete(offsets) }
-                            .listRowBackground(Color.white.opacity(0.06))
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .refreshable { await refreshQuotes() }
-                }
-            }
-            .background(GrainientBackground().ignoresSafeArea())
-            .navigationTitle("Investments")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    HStack {
-                        if refreshing { ProgressView() }
-                        else { Button { Task { await refreshQuotes() } } label: { Image(systemName: "arrow.clockwise") } }
-                        Button { editing = Holding(kind: investmentKinds[0].name, name: "",
-                                                   quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
-                            Image(systemName: "plus")
-                        }
+        VStack(spacing: 0) {
+            PageHeader("Investments") {
+                if refreshing { ProgressView() }
+                else {
+                    Button { Task { await refreshQuotes() } } label: {
+                        Image(systemName: "arrow.clockwise").foregroundStyle(Color.appInk)
                     }
                 }
-            }
-            .sheet(item: $editing) { h in
-                HoldingEditSheet(holding: h, accounts: accounts) { saved in
-                    upsert(saved)
-                    editing = nil
+                Button { editing = Holding(kind: investmentKinds[0].name, name: "",
+                                           quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
+                    Image(systemName: "plus").foregroundStyle(Color.appInk)
                 }
+            }
+            if holdings.isEmpty {
+                ContentUnavailableView("No investments", systemImage: "chart.line.uptrend.xyaxis",
+                    description: Text("Tap + to add a holding."))
+                    .frame(maxHeight: .infinity)
+            } else {
+                List {
+                    Section { summary.listRowBackground(Color.clear) }
+                    Section("Holdings") {
+                        ForEach(holdings) { h in
+                            Button { editing = h } label: { row(h) }.buttonStyle(.plain)
+                        }
+                        .onDelete { offsets in delete(offsets) }
+                        .listRowBackground(Color.white.opacity(0.06))
+                    }
+                }
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
+                .refreshable { await refreshQuotes() }
             }
         }
         .preferredColorScheme(.dark).tint(.white)
+        .sheet(item: $editing) { h in
+            HoldingEditSheet(holding: h, accounts: accounts) { saved in
+                upsert(saved)
+                editing = nil
+            }
+        }
         .onAppear {
             holdings = HoldingStore.load()
             accounts = AccountStore.load()

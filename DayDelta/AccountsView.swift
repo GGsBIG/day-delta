@@ -25,7 +25,6 @@ struct AccountsView: View {
     /// solid color (no liquid glass). Default: translucent white.
     @AppStorage("panelHex") private var panelHex = "#FFFFFF26"
     @State private var showingColors = false
-    @State private var showingInvestments = false
 
     /// The panel frame fill (chosen color/alpha) + a hairline edge — no glass.
     private func panelBG() -> some View {
@@ -97,9 +96,6 @@ struct AccountsView: View {
         .sheet(isPresented: $showingColors) {
             ColorSettingsView().presentationDetents([.medium, .large])
         }
-        .sheet(isPresented: $showingInvestments) {
-            InvestmentsView()
-        }
         .onChange(of: accounts) { _, new in
             AccountStore.save(new)
             if let selected, !new.contains(where: { $0.id == selected }) { self.selected = nil }
@@ -135,9 +131,6 @@ struct AccountsView: View {
                     ForEach(accounts) { a in Text(a.name).tag(UUID?.some(a.id)) }
                 }
                 Divider()
-                Button { showingInvestments = true } label: {
-                    Label("Investments…", systemImage: "chart.line.uptrend.xyaxis")
-                }
                 Button { showingManage = true } label: {
                     Label("Manage accounts…", systemImage: "slider.horizontal.3")
                 }
