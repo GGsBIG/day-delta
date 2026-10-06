@@ -30,6 +30,8 @@ targets:
         INFOPLIST_KEY_UIRequiresFullScreen: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait
+        # Allow ProMotion 120Hz for the app's animations (otherwise capped at 60).
+        INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone: YES
     dependencies:
       - target: DayDeltaWidget
   DayDeltaWidget:

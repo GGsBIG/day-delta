@@ -34,10 +34,10 @@ private struct RootView: View {
     var body: some View {
         let _ = bgHex   // subscribe to background-color changes so ink updates
         ZStack {
-            // Static base behind the pager (cheap). Each page draws its own
-            // animated grainient on top; all share the same color + wall clock,
-            // so they render identical frames and paging looks seamless.
-            GrainientBackground(animated: false).ignoresSafeArea()
+            // Full-screen animated grainient behind the pager. Each page also draws
+            // its own screen-anchored grainient (same image), so any tiny gap at a
+            // page edge during a swipe shows this identical backdrop — never black.
+            GrainientBackground().ignoresSafeArea()
             pager
         }
         .safeAreaInset(edge: .bottom) { tabBar }
