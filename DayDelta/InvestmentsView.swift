@@ -237,7 +237,7 @@ private struct HoldingEditSheet: View {
                 }
             }
             .sheet(isPresented: $showSearch) {
-                StockSearchView { match in
+                StockSearchView(preferTW: holding.kind == "TW Stocks") { match in
                     holding.symbol = match.symbol
                     holding.name = match.name
                     Task {
@@ -265,6 +265,7 @@ private struct HoldingEditSheet: View {
 
 /// Search instruments by name/symbol (Yahoo) and pick one — no manual typing.
 private struct StockSearchView: View {
+    var preferTW = false
     let onPick: (SymbolMatch) -> Void
     @State private var query = ""
     @State private var results: [SymbolMatch] = []
@@ -303,7 +304,10 @@ private struct StockSearchView: View {
         .task(id: query) {
             try? await Task.sleep(nanoseconds: 300_000_000)   // debounce
             guard !Task.isCancelled else { return }
-            results = await QuoteService.search(query)
+            // TW stocks: a bare numeric code like "2330" → search "2330.TW".
+            let raw = query.trimmingCharacters(in: .whitespaces)
+            let q = (preferTW && !raw.isEmpty && raw.allSatisfy(\.isNumber)) ? raw + ".TW" : raw
+            results = await QuoteService.search(q)
         }
     }
 }
