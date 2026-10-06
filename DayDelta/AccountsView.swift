@@ -355,6 +355,7 @@ private struct AvatarStack: View {
 /// recoloring recolors the whole app's backdrop.
 struct GrainientBackground: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private typealias Geo = (base: (Double, Double), amp: (Double, Double),
                              speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
@@ -367,23 +368,36 @@ struct GrainientBackground: View {
 
     var body: some View {
         let p = palette(Color(hex: bgHex))
-        TimelineView(.animation) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            ZStack {
-                LinearGradient(colors: [p.top, p.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
-                ForEach(geos.indices, id: \.self) { i in
-                    let g = geos[i]
-                    let x = g.base.0 + g.amp.0 * sin(t * g.speed + g.phase)
-                    let y = g.base.1 + g.amp.1 * cos(t * g.speed * 0.9 + g.phase)
-                    RadialGradient(colors: [p.blobs[i], p.blobs[i].opacity(0)],
-                                   center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: g.r)
-                        .blendMode(g.blend)
-                }
+        // Reduce Motion (or Low Power via the OS pausing timelines) renders one
+        // static frame — no continuous GPU work.
+        if reduceMotion {
+            frame(p, t: 0)
+        } else {
+            TimelineView(.animation) { timeline in
+                frame(p, t: timeline.date.timeIntervalSinceReferenceDate)
             }
-            .contrast(1.5)
-            .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
-            .ignoresSafeArea()
         }
+    }
+
+    /// One composited frame. `drawingGroup()` flattens the base gradient, the four
+    /// blended blobs, the contrast pass and the grain overlay into a single Metal
+    /// render instead of several offscreen passes — much cheaper per frame.
+    private func frame(_ p: (top: Color, bottom: Color, blobs: [Color]), t: Double) -> some View {
+        ZStack {
+            LinearGradient(colors: [p.top, p.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+            ForEach(geos.indices, id: \.self) { i in
+                let g = geos[i]
+                let x = g.base.0 + g.amp.0 * sin(t * g.speed + g.phase)
+                let y = g.base.1 + g.amp.1 * cos(t * g.speed * 0.9 + g.phase)
+                RadialGradient(colors: [p.blobs[i], p.blobs[i].opacity(0)],
+                               center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: g.r)
+                    .blendMode(g.blend)
+            }
+        }
+        .contrast(1.5)
+        .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
+        .drawingGroup()
+        .ignoresSafeArea()
     }
 
     /// Base gradient + four blob colors from one chosen color, shifting hue a
