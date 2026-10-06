@@ -25,9 +25,10 @@ struct AccountsView: View {
     @State private var showingColors = false
     @State private var showingInvestments = false
 
-    /// Colored wash layered over the glass to tint the component frames.
+    /// Colored wash layered over the glass to tint the component frames. Strong
+    /// enough to override the dark glass so the chosen color clearly shows.
     private func panelTint() -> some View {
-        RoundedRectangle(cornerRadius: UI.radius).fill(Color(hex: panelHex).opacity(0.15))
+        RoundedRectangle(cornerRadius: UI.radius).fill(Color(hex: panelHex).opacity(0.3))
     }
 
     /// Text/graphic colors track the chosen background for maximum contrast.
@@ -264,7 +265,7 @@ struct AccountsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         // The panel tint instead of glass-on-glass, which would read too dark.
-        .background(RoundedRectangle(cornerRadius: UI.radius).fill(Color(hex: panelHex).opacity(0.12)))
+        .background(RoundedRectangle(cornerRadius: UI.radius).fill(Color(hex: panelHex).opacity(0.22)))
     }
 
     // MARK: Derived labels & actions
