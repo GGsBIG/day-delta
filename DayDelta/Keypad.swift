@@ -33,7 +33,7 @@ struct Keypad: View {
                 .foregroundStyle(Color.appInk)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(RoundedRectangle(cornerRadius: UI.radius).fill(Color(white: 0.12)))
+                .panel()
         }
         .buttonStyle(.plain)
     }

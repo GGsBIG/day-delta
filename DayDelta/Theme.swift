@@ -62,6 +62,15 @@ func accentGradient(_ hex: String) -> LinearGradient {
 }
 
 extension View {
+    /// Fill a component frame with the user-chosen panel color + a hairline edge.
+    /// Used app-wide (cards, tab bar, keypad) so one color drives them all.
+    func panel(_ radius: CGFloat = UI.radius) -> some View {
+        background(RoundedRectangle(cornerRadius: radius).fill(Color.appPanel))
+            .overlay(RoundedRectangle(cornerRadius: radius).strokeBorder(Color.appInk.opacity(0.15)))
+    }
+}
+
+extension View {
     /// iOS 26 "Liquid Glass" background clipped to `shape`; frosted-material
     /// fallback on older systems. Used for every panel so the app matches the
     /// native glass look.
@@ -105,6 +114,11 @@ extension Color {
     static var appInk: Color {
         let hex = UserDefaults.standard.string(forKey: "accountsBgHex") ?? "#5227FF"
         return relativeLuminance(hex) > 0.45 ? .black : .white
+    }
+
+    /// The user-chosen component panel color (cards, tab bar, keypad, …). "#RRGGBBAA".
+    static var appPanel: Color {
+        Color(hex: UserDefaults.standard.string(forKey: "panelHex") ?? "#FFFFFF26")
     }
 
     /// "#RRGGBB" or "#RRGGBBAA" -> Color. Falls back to gray on a malformed string.

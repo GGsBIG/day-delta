@@ -26,12 +26,14 @@ private struct RootView: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     /// Accent color for the selected-tab highlight and Add button.
     @AppStorage("accentHex") private var accentHex = "#5227FF"
+    /// Panel color drives the tab bar fill; observed so it updates live.
+    @AppStorage("panelHex") private var panelHex = "#FFFFFF26"
 
     /// Nearest page — drives the highlight, Add button, and haptics.
     private var tab: Int { Int(progress.rounded()) }
 
     var body: some View {
-        let _ = bgHex   // subscribe to background-color changes so ink updates
+        let _ = (bgHex, panelHex)   // subscribe so ink + panel color update live
         ZStack {
             // One fixed animated grainient behind everything. Pages are transparent
             // and slide over it, so the background never seams or flashes black.
@@ -124,7 +126,7 @@ private struct RootView: View {
             .onEnded { _ in
                 withAnimation(.snappy(duration: 0.3)) { progress = CGFloat(tab) }
             })
-        .liquidGlass(clear: true)
+        .panel()
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
         .padding(.horizontal, 32)
         .padding(.bottom, 4)
