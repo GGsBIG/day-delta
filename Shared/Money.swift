@@ -121,6 +121,75 @@ struct SymbolMatch: Identifiable, Hashable {
     var id: String { symbol }
 }
 
+/// Same-symbol purchases merged for display. Totals sum the individual lots.
+struct HoldingGroup: Identifiable {
+    let key: String
+    let lots: [Holding]
+    var id: String { key }
+    var kind: String { lots.first?.kind ?? "" }
+    var name: String { lots.first?.name ?? "" }
+    var symbol: String { lots.first?.symbol ?? "" }
+    var currentPrice: Decimal { lots.last?.currentPrice ?? 0 }
+    var shares: Decimal { lots.reduce(0) { $0 + $1.quantity } }
+    var cost: Decimal { lots.reduce(0) { $0 + $1.cost } }
+    var marketValue: Decimal { lots.reduce(0) { $0 + $1.marketValue } }
+    var gain: Decimal { lots.reduce(0) { $0 + $1.gain } }
+}
+
+/// Groups holdings so repeated buys of the same stock collapse into one entry.
+/// Key = symbol if set, else name, else the id (keeps distinct). First-seen order.
+func groupHoldings(_ holdings: [Holding]) -> [HoldingGroup] {
+    var order: [String] = []
+    var map: [String: [Holding]] = [:]
+    for h in holdings {
+        let key = !h.symbol.isEmpty ? h.symbol : (!h.name.isEmpty ? h.name : h.id.uuidString)
+        if map[key] == nil { order.append(key) }
+        map[key, default: []].append(h)
+    }
+    return order.map { HoldingGroup(key: $0, lots: map[$0] ?? []) }
+}
+
+/// Persists holdings and keeps each one's linked investment-expense txn in sync,
+/// so a purchase's cost counts as saved and shows in the Ledger.
+enum HoldingService {
+    /// Upsert a holding + its linked txn.
+    static func save(_ h: Holding) {
+        var holding = h
+        var txns = TxnStore.load()
+        let cat = ensureInvestmentCategory()
+        if let tid = holding.txnID, let i = txns.firstIndex(where: { $0.id == tid }) {
+            txns[i].amount = holding.cost
+            txns[i].date = holding.date
+            txns[i].note = holding.name
+            txns[i].accountID = holding.accountID
+            txns[i].categoryID = cat.id
+        } else {
+            let t = Txn(type: .expense, amount: holding.cost, categoryID: cat.id,
+                        date: holding.date, note: holding.name, accountID: holding.accountID)
+            holding.txnID = t.id
+            txns.append(t)
+        }
+        TxnStore.save(txns)
+
+        var items = HoldingStore.load()
+        if let i = items.firstIndex(where: { $0.id == holding.id }) { items[i] = holding }
+        else { items.append(holding) }
+        HoldingStore.save(items)
+    }
+
+    /// Remove holdings (by id) + their linked txns.
+    static func delete(ids: [UUID]) {
+        let items = HoldingStore.load()
+        let txnIDs = Set(items.filter { ids.contains($0.id) }.compactMap(\.txnID))
+        if !txnIDs.isEmpty {
+            var txns = TxnStore.load()
+            txns.removeAll { txnIDs.contains($0.id) }
+            TxnStore.save(txns)
+        }
+        HoldingStore.save(items.filter { !ids.contains($0.id) })
+    }
+}
+
 /// Parses Yahoo Finance search JSON (`quotes[]`) into symbol matches. Pure.
 func parseSymbolSearch(_ data: Data) -> [SymbolMatch] {
     guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

@@ -6,7 +6,12 @@ struct InvestmentsView: View {
     @State private var holdings: [Holding] = HoldingStore.load()
     @State private var accounts: [Account] = AccountStore.load()
     @State private var editing: Holding?
+    @State private var viewingGroup: GroupKey?
     @State private var refreshing = false
+
+    private struct GroupKey: Identifiable { let id: String }
+
+    private var groups: [HoldingGroup] { groupHoldings(holdings) }
 
     private var totalValue: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
     private var totalCost: Decimal { holdings.reduce(0) { $0 + $1.cost } }
@@ -20,16 +25,17 @@ struct InvestmentsView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader("Investments") {
-                if refreshing { ProgressView() }
-                else {
+                if refreshing {
+                    ProgressView()
+                } else {
                     Button { Task { await refreshQuotes() } } label: {
-                        Image(systemName: "arrow.clockwise").foregroundStyle(Color.appInk)
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 22, weight: .semibold)).foregroundStyle(Color.appInk)
                     }
                 }
-                Button { editing = Holding(kind: investmentKinds[0].name, name: "",
-                                           quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 28)).foregroundStyle(Color.appInk)
+                Button { editing = newHolding() } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 24, weight: .semibold)).foregroundStyle(Color.appInk)
                 }
             }
             if holdings.isEmpty {
@@ -40,10 +46,14 @@ struct InvestmentsView: View {
                 List {
                     Section { summary.listRowBackground(Color.clear) }
                     Section("Holdings") {
-                        ForEach(holdings) { h in
-                            Button { editing = h } label: { row(h) }.buttonStyle(.plain)
+                        ForEach(groups) { g in
+                            Button { viewingGroup = GroupKey(id: g.key) } label: { groupRow(g) }.buttonStyle(.plain)
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        HoldingService.delete(ids: g.lots.map(\.id)); reload()
+                                    } label: { Label("Delete", systemImage: "trash") }
+                                }
                         }
-                        .onDelete { offsets in delete(offsets) }
                         .listRowBackground(Color.white.opacity(0.06))
                     }
                 }
@@ -55,66 +65,31 @@ struct InvestmentsView: View {
         .preferredColorScheme(.dark).tint(.white)
         .sheet(item: $editing) { h in
             HoldingEditSheet(holding: h, accounts: accounts) { saved in
-                upsert(saved)
-                editing = nil
+                HoldingService.save(saved); reload(); editing = nil
             }
         }
-        .onAppear {
-            holdings = HoldingStore.load()
-            accounts = AccountStore.load()
+        .sheet(item: $viewingGroup) { key in
+            HoldingGroupSheet(groupKey: key.id, accounts: accounts) { reload() }
         }
+        .onAppear { reload(); accounts = AccountStore.load() }
         .task { await refreshQuotes() }
     }
 
-    // MARK: Persistence + linked txn
-
-    /// Save a holding and upsert its linked investment expense txn so the cost
-    /// counts as "saved" (and shows in the Ledger).
-    private func upsert(_ h: Holding) {
-        var holding = h
-        var txns = TxnStore.load()
-        let cat = ensureInvestmentCategory()
-        if let tid = holding.txnID, let i = txns.firstIndex(where: { $0.id == tid }) {
-            txns[i].amount = holding.cost
-            txns[i].date = holding.date
-            txns[i].note = holding.name
-            txns[i].accountID = holding.accountID
-            txns[i].categoryID = cat.id
-        } else {
-            let t = Txn(type: .expense, amount: holding.cost, categoryID: cat.id,
-                        date: holding.date, note: holding.name, accountID: holding.accountID)
-            holding.txnID = t.id
-            txns.append(t)
-        }
-        TxnStore.save(txns)
-
-        if let i = holdings.firstIndex(where: { $0.id == holding.id }) { holdings[i] = holding }
-        else { holdings.append(holding) }
-        HoldingStore.save(holdings)
+    private func newHolding() -> Holding {
+        Holding(kind: investmentKinds[0].name, name: "", quantity: 0, costPerUnit: 0, currentPrice: 0)
     }
 
-    private func delete(_ offsets: IndexSet) {
-        let removed = offsets.map { holdings[$0] }
-        let txnIDs = Set(removed.compactMap(\.txnID))
-        if !txnIDs.isEmpty {
-            var txns = TxnStore.load()
-            txns.removeAll { txnIDs.contains($0.id) }
-            TxnStore.save(txns)
-        }
-        holdings.remove(atOffsets: offsets)
-        HoldingStore.save(holdings)
-    }
+    private func reload() { holdings = HoldingStore.load() }
 
-    /// Pull live prices for every holding that has a symbol.
+    /// Pull live prices once per unique symbol, applied to all lots of that symbol.
     private func refreshQuotes() async {
-        guard holdings.contains(where: { !$0.symbol.isEmpty }) else { return }
+        let symbols = Set(holdings.map(\.symbol).filter { !$0.isEmpty })
+        guard !symbols.isEmpty else { return }
         refreshing = true
         defer { refreshing = false }
-        for i in holdings.indices where !holdings[i].symbol.isEmpty {
-            if let p = await QuoteService.price(for: holdings[i].symbol) {
-                holdings[i].currentPrice = p
-            }
-        }
+        var prices: [String: Decimal] = [:]
+        for s in symbols { if let p = await QuoteService.price(for: s) { prices[s] = p } }
+        for i in holdings.indices { if let p = prices[holdings[i].symbol] { holdings[i].currentPrice = p } }
         HoldingStore.save(holdings)
     }
 
@@ -137,24 +112,123 @@ struct InvestmentsView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: Row
+    // MARK: Group row
 
-    private func row(_ h: Holding) -> some View {
+    private func groupRow(_ g: HoldingGroup) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: kindIcon(h.kind)).font(.system(size: 20))
-                .foregroundStyle(Color(hex: kindColorHex(h.kind))).frame(width: 28)
+            Image(systemName: kindIcon(g.kind)).font(.system(size: 20))
+                .foregroundStyle(Color(hex: kindColorHex(g.kind))).frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(h.name.isEmpty ? h.kind : h.name).foregroundStyle(.white)
-                Text("\(decimal(h.quantity)) · \(h.kind)").font(.caption).foregroundStyle(.white.opacity(0.6))
+                Text(g.name.isEmpty ? g.kind : g.name).foregroundStyle(.white)
+                Text("\(decimal(g.shares)) shares"
+                     + (g.lots.count > 1 ? " · \(g.lots.count) buys" : ""))
+                    .font(.caption).foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(formatMoney(h.marketValue)).foregroundStyle(.white)
-                Text("\(h.gain >= 0 ? "+" : "")\(formatMoney(h.gain))")
-                    .font(.caption).foregroundStyle(h.gain >= 0 ? .green : .red)
+                Text(formatMoney(g.marketValue)).foregroundStyle(.white)
+                Text("\(g.gain >= 0 ? "+" : "")\(formatMoney(g.gain))")
+                    .font(.caption).foregroundStyle(g.gain >= 0 ? .green : .red)
             }
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
         }
         .font(.system(.body, design: .rounded))
+    }
+}
+
+/// Detail for one symbol group: aggregate header + each individual purchase, with
+/// add / edit / delete per lot.
+private struct HoldingGroupSheet: View {
+    let groupKey: String
+    let accounts: [Account]
+    let onChange: () -> Void
+    @State private var lots: [Holding] = []
+    @State private var editing: Holding?
+    @Environment(\.dismiss) private var dismiss
+
+    private var group: HoldingGroup { HoldingGroup(key: groupKey, lots: lots) }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section { header.listRowBackground(Color.clear) }
+                Section("Purchases") {
+                    ForEach(lots) { lot in
+                        Button { editing = lot } label: { lotRow(lot) }.buttonStyle(.plain)
+                            .swipeActions {
+                                Button(role: .destructive) {
+                                    HoldingService.delete(ids: [lot.id]); reload()
+                                } label: { Label("Delete", systemImage: "trash") }
+                            }
+                    }
+                    .listRowBackground(Color.white.opacity(0.06))
+                    Button { editing = addLot() } label: {
+                        Label("Add purchase", systemImage: "plus")
+                    }
+                    .listRowBackground(Color.white.opacity(0.06))
+                }
+            }
+            .font(.system(.body, design: .rounded))
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(GrainientBackground().ignoresSafeArea())
+            .navigationTitle(group.name.isEmpty ? group.kind : group.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .sheet(item: $editing) { h in
+                HoldingEditSheet(holding: h, accounts: accounts) { saved in
+                    HoldingService.save(saved); reload(); editing = nil
+                }
+            }
+        }
+        .preferredColorScheme(.dark).tint(.white)
+        .onAppear { reload() }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Market value").font(.caption).foregroundStyle(.white.opacity(0.6))
+            Text(formatMoney(group.marketValue))
+                .font(.system(size: 34, weight: .thin, design: .rounded)).tracking(-1)
+                .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
+            HStack(spacing: 12) {
+                Text("\(decimal(group.shares)) shares · cost \(formatMoney(group.cost))")
+                    .font(.caption).foregroundStyle(.white.opacity(0.6))
+                Text("\(group.gain >= 0 ? "+" : "")\(formatMoney(group.gain))")
+                    .font(.system(.subheadline, design: .rounded)).bold()
+                    .foregroundStyle(group.gain >= 0 ? .green : .red)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+    }
+
+    private func lotRow(_ lot: Holding) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(lot.date, format: .dateTime.year().month().day()).foregroundStyle(.white)
+                Text("\(decimal(lot.quantity)) sh @ \(formatMoney(lot.costPerUnit))")
+                    .font(.caption).foregroundStyle(.white.opacity(0.6))
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(formatMoney(lot.marketValue)).foregroundStyle(.white)
+                Text("\(lot.gain >= 0 ? "+" : "")\(formatMoney(lot.gain))")
+                    .font(.caption).foregroundStyle(lot.gain >= 0 ? .green : .red)
+            }
+        }
+    }
+
+    /// A new lot pre-filled with this group's instrument + latest price.
+    private func addLot() -> Holding {
+        Holding(kind: group.kind, name: group.name, symbol: group.symbol,
+                quantity: 0, costPerUnit: 0, currentPrice: group.currentPrice)
+    }
+
+    private func reload() {
+        lots = groupHoldings(HoldingStore.load()).first { $0.key == groupKey }?.lots ?? []
+        onChange()
+        if lots.isEmpty { dismiss() }
     }
 }
 

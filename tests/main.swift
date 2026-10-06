@@ -191,6 +191,19 @@ assert(matches[0].symbol == "AAPL" && matches[0].name == "Apple Inc.")
 assert(matches[1].symbol == "2330.TW" && matches[1].name == "Taiwan Semiconductor")
 assert(parseSymbolSearch(Data("garbage".utf8)).isEmpty)
 
+// groupHoldings: same symbol merges and sums; different symbols stay separate
+let lot1 = Holding(kind: "ETF", name: "0050", symbol: "0050.TW", quantity: 1000, costPerUnit: 100, currentPrice: 120)
+let lot2 = Holding(kind: "ETF", name: "0050", symbol: "0050.TW", quantity: 500, costPerUnit: 110, currentPrice: 120)
+let lot3 = Holding(kind: "US Stocks", name: "Apple", symbol: "AAPL", quantity: 10, costPerUnit: 150, currentPrice: 170)
+let groups = groupHoldings([lot1, lot2, lot3])
+assert(groups.count == 2)
+assert(groups[0].symbol == "0050.TW" && groups[0].lots.count == 2)
+assert(groups[0].shares == 1500)
+assert(groups[0].cost == 155000)          // 1000*100 + 500*110
+assert(groups[0].marketValue == 180000)   // 1500*120
+assert(groups[0].gain == 25000)
+assert(groups[1].symbol == "AAPL" && groups[1].lots.count == 1)
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
