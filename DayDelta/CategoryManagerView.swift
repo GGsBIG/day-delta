@@ -94,7 +94,7 @@ struct CategoryManagerView: View {
 
     private func row(_ c: Category) -> some View {
         HStack {
-            CategoryBadge(category: c, size: 28)
+            CategoryBadge(category: c, size: 22)
             Text(c.name.isEmpty ? "(unnamed)" : c.name)
             Spacer()
             if c.builtin { Text("built-in").foregroundStyle(Color.appInk.opacity(0.6)).font(.caption) }
