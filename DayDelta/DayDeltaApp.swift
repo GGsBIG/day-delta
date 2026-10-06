@@ -92,8 +92,8 @@ private struct RootView: View {
             tabButton(3, "calendar")
         }
         .padding(6)
-        .liquidGlass()
-        .shadow(color: .black.opacity(0.3), radius: 14, y: 6)
+        .liquidGlass(clear: true)
+        .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
         .padding(.horizontal, 32)
         .padding(.bottom, 4)
     }
@@ -126,12 +126,13 @@ private struct RootView: View {
                 .frame(width: 50, height: 50)
                 .background {
                     if tab == i {
-                        Circle()
+                        RoundedRectangle(cornerRadius: UI.radius)
                             .fill(accentGradient(accentHex))
+                            .padding(3)
                             .matchedGeometryEffect(id: "tabHighlight", in: tabNS)
                     }
                 }
-                .contentShape(Circle())
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

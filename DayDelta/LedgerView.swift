@@ -32,9 +32,13 @@ extension View {
     /// fallback on older systems. Used for every panel so the app matches the
     /// native glass look.
     @ViewBuilder
-    func liquidGlass(_ shape: some Shape) -> some View {
+    func liquidGlass(_ shape: some Shape, clear: Bool = false) -> some View {
         if #available(iOS 26.0, *) {
             self.glassEffect(.regular, in: shape)
+        } else if clear {
+            // Maximum see-through: just the thin blur + a hairline edge.
+            self.background(shape.fill(.ultraThinMaterial))
+                .overlay(shape.stroke(.white.opacity(0.18), lineWidth: 0.5))
         } else {
             // Thin, light frost: a faint white behind the blur lifts it off the
             // dark background, with an Apple-style hairline edge.
@@ -45,8 +49,8 @@ extension View {
     }
 
     /// Rounded-rect liquid glass (default corner radius).
-    func liquidGlass(_ radius: CGFloat = UI.radius) -> some View {
-        liquidGlass(RoundedRectangle(cornerRadius: radius))
+    func liquidGlass(_ radius: CGFloat = UI.radius, clear: Bool = false) -> some View {
+        liquidGlass(RoundedRectangle(cornerRadius: radius), clear: clear)
     }
 }
 
