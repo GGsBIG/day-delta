@@ -149,7 +149,8 @@ struct ContentView: View {
         let payload = BackupData(events: events,
                                  txns: TxnStore.load(),
                                  categories: CategoryStore.load(),
-                                 accounts: AccountStore.load())
+                                 accounts: AccountStore.load(),
+                                 holdings: HoldingStore.load())
         return (try? JSONEncoder().encode(payload)) ?? Data()
     }
 
@@ -166,6 +167,7 @@ struct ContentView: View {
             mergeTxns(backup.txns)
             mergeCategories(backup.categories)
             mergeAccounts(backup.accounts)
+            mergeHoldings(backup.holdings)
         } else if let legacy = try? JSONDecoder().decode([Event].self, from: data) {
             merge(legacy)
         }
@@ -204,6 +206,15 @@ struct ContentView: View {
             else { accs.append(a) }
         }
         AccountStore.save(accs)
+    }
+
+    private func mergeHoldings(_ imported: [Holding]) {
+        var items = HoldingStore.load()
+        for h in imported {
+            if let i = items.firstIndex(where: { $0.id == h.id }) { items[i] = h }
+            else { items.append(h) }
+        }
+        HoldingStore.save(items)
     }
 
     private func persist() {

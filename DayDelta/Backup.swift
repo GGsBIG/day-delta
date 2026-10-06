@@ -27,4 +27,5 @@ struct BackupData: Codable {
     var txns: [Txn]
     var categories: [Category]
     var accounts: [Account] = []   // default so older backups (no accounts) decode
+    var holdings: [Holding] = []   // default so older backups (no holdings) decode
 }

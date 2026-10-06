@@ -169,6 +169,14 @@ assert(series.last?.balance == 700)
 let allSeries = balanceSeries(balTxns, scope: nil, period: .week, now: day(2026, 10, 5), calendar: cal)
 assert(allSeries.last?.balance == 630)
 
+// Holding: cost, market value, unrealized gain
+let h = Holding(kind: "US Stocks", name: "AAPL", quantity: 10, costPerUnit: 100, currentPrice: 120)
+assert(h.cost == 1000)
+assert(h.marketValue == 1200)
+assert(h.gain == 200)
+let loss = Holding(kind: "Gold", name: "XAU", quantity: 2, costPerUnit: 300, currentPrice: 250)
+assert(loss.gain == -100)
+
 print("all DayMath tests passed")
 
 print("all money tests passed")

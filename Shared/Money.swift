@@ -94,6 +94,62 @@ enum AccountStore {
     }
 }
 
+// MARK: - Investments
+
+/// One investment holding. Prices are entered by hand (no live quotes).
+struct Holding: Codable, Identifiable, Hashable {
+    var id = UUID()
+    var kind: String          // instrument kind name, e.g. "US Stocks"
+    var name: String          // user symbol/name, e.g. "AAPL"
+    var quantity: Decimal
+    var costPerUnit: Decimal
+    var currentPrice: Decimal
+    var date: Date = .now
+    var note: String?
+}
+
+extension Holding {
+    var cost: Decimal { quantity * costPerUnit }
+    var marketValue: Decimal { quantity * currentPrice }
+    /// Unrealized profit/loss: market value minus cost.
+    var gain: Decimal { marketValue - cost }
+}
+
+/// Built-in instrument kinds offered in the picker: (name, color, SF Symbol).
+let investmentKinds: [(name: String, colorHex: String, icon: String)] = [
+    ("US Stocks", "#4F9DFF", "chart.line.uptrend.xyaxis"),
+    ("TW Stocks", "#EF4444", "chart.bar.fill"),
+    ("Gold",      "#F59E0B", "circle.hexagongrid.fill"),
+    ("Crypto",    "#A855F7", "bitcoinsign.circle.fill"),
+    ("ETF",       "#22C55E", "chart.pie.fill"),
+    ("Fund",      "#14B8A6", "building.columns.fill"),
+    ("Bond",      "#EC4899", "doc.text.fill"),
+    ("Cash",      "#9CA3AF", "banknote.fill"),
+    ("Other",     "#9CA3AF", "ellipsis.circle.fill"),
+]
+
+func kindColorHex(_ name: String) -> String { investmentKinds.first { $0.name == name }?.colorHex ?? "#9CA3AF" }
+func kindIcon(_ name: String) -> String { investmentKinds.first { $0.name == name }?.icon ?? "ellipsis.circle.fill" }
+
+enum HoldingStore {
+    private static let key = "daydelta.holdings"
+    private static var cache: [Holding]?
+
+    static func load() -> [Holding] {
+        if let cache { return cache }
+        let items = (UserDefaults.standard.data(forKey: key))
+            .flatMap { try? JSONDecoder().decode([Holding].self, from: $0) } ?? []
+        cache = items
+        return items
+    }
+
+    static func save(_ items: [Holding]) {
+        cache = items
+        guard let data = try? JSONEncoder().encode(items) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+}
+
 enum TxnStore {
     private static let key = "daydelta.txns"
     private static var cache: [Txn]?
