@@ -67,7 +67,7 @@ struct AccountsView: View {
         ZStack {
             VStack(alignment: .leading, spacing: 16) {
                 header
-                balanceBlock.legible()
+                balanceBlock
                 chips
                 card
             }
@@ -395,7 +395,7 @@ struct GrainientBackground: View {
                     .blendMode(g.blend)
             }
         }
-        .contrast(1.5)
+        .contrast(1.35)
         .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
         .compositingGroup()
         .ignoresSafeArea()
@@ -415,8 +415,8 @@ struct GrainientBackground: View {
             top: c(0, S, max(0.28, B * 0.8)),
             bottom: c(-6, min(1, S + 0.1), max(0.12, B * 0.35)),
             blobs: [
-                c(8, S * 0.5, 0.99),                        // light tint
-                c(16, S * 0.8, min(1, B + 0.05)),           // hue-shifted
+                c(8, S * 0.75, 0.80),                       // bright colored tint (not white)
+                c(16, S * 0.8, min(0.9, B + 0.05)),         // hue-shifted
                 c(0, S, B),                                 // the chosen color
                 c(-10, min(1, S + 0.1), max(0.1, B * 0.3)), // deep shade
             ]

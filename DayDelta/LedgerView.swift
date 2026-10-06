@@ -21,7 +21,6 @@ struct PageHeader<Trailing: View>: View {
             Text(title)
                 .font(.system(.largeTitle, design: .rounded)).fontWeight(.bold)
                 .foregroundStyle(Color.appInk)
-                .legible()
             Spacer()
             trailing
         }
@@ -98,21 +97,6 @@ extension Color {
     static var appInk: Color {
         let hex = UserDefaults.standard.string(forKey: "accountsBgHex") ?? "#5227FF"
         return relativeLuminance(hex) > 0.45 ? .black : .white
-    }
-    /// The opposite of `appInk` — used as a legibility halo behind on-background
-    /// text so it stays readable over bright *and* dark regions of the grainient.
-    static var appInkInverted: Color {
-        let hex = UserDefaults.standard.string(forKey: "accountsBgHex") ?? "#5227FF"
-        return relativeLuminance(hex) > 0.45 ? .white : .black
-    }
-}
-
-extension View {
-    /// Adds a soft opposite-color halo so text/graphics sitting directly on the
-    /// variable grainient background never get swallowed by a bright or dark patch.
-    func legible() -> some View {
-        shadow(color: Color.appInkInverted.opacity(0.5), radius: 3)
-            .shadow(color: Color.appInkInverted.opacity(0.35), radius: 6)
     }
 }
 
@@ -194,9 +178,8 @@ struct LedgerView: View {
                     onPrevMonth: { changeMonth(-1) },
                     onNextMonth: { changeMonth(1) }
                 )
-                .legible()
 
-                selectedDayList.legible()
+                selectedDayList
             }
             .padding()
         }
