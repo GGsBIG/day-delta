@@ -247,7 +247,8 @@ struct AccountsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .liquidGlass()
+        // A light tint instead of glass-on-glass, which would read too dark.
+        .background(RoundedRectangle(cornerRadius: UI.radius).fill(.white.opacity(0.1)))
     }
 
     // MARK: Derived labels & actions
@@ -354,6 +355,9 @@ private struct AvatarStack: View {
 /// TimelineView(.animation). Colors derive from the chosen background color, so
 /// recoloring recolors the whole app's backdrop.
 struct GrainientBackground: View {
+    /// false = render one static frame (used as the continuous base behind the
+    /// sliding tabs, and under Reduce Motion) — no per-frame GPU work.
+    var animated = true
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -368,9 +372,8 @@ struct GrainientBackground: View {
 
     var body: some View {
         let p = palette(Color(hex: bgHex))
-        // Reduce Motion (or Low Power via the OS pausing timelines) renders one
-        // static frame — no continuous GPU work.
-        if reduceMotion {
+        // Static when not animated or under Reduce Motion — one frame, no per-frame work.
+        if !animated || reduceMotion {
             frame(p, t: 0)
         } else {
             TimelineView(.animation) { timeline in

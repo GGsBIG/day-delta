@@ -37,10 +37,10 @@ private struct RootView: View {
     var body: some View {
         let _ = bgHex   // subscribe to background-color changes so ink updates
         ZStack {
-            // Static base only — each tab renders its own (animated) grainient, so
-            // a second always-on instance here would just animate behind, unseen.
-            // This keeps transitions from flashing during the slide.
-            Color(hex: bgHex).ignoresSafeArea()
+            // Continuous static grainient behind the sliding tabs, so switching
+            // reveals matching backdrop (no hard color flash) while each tab's own
+            // animated grainient rides on top. Static = no extra per-frame work.
+            GrainientBackground(animated: false).ignoresSafeArea()
             content
                 .id(tab)
                 .transition(slide)

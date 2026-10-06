@@ -36,8 +36,11 @@ extension View {
         if #available(iOS 26.0, *) {
             self.glassEffect(.regular, in: shape)
         } else {
-            self.background(shape.fill(.ultraThinMaterial))
-                .overlay(shape.stroke(.white.opacity(0.18)))
+            // Thin, light frost: a faint white behind the blur lifts it off the
+            // dark background, with an Apple-style hairline edge.
+            self.background(shape.fill(.white.opacity(0.12)))
+                .background(shape.fill(.ultraThinMaterial))
+                .overlay(shape.stroke(.white.opacity(0.25), lineWidth: 0.5))
         }
     }
 
