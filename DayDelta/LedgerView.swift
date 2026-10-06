@@ -1,7 +1,31 @@
 import SwiftUI
+import UIKit
 
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
+
+extension Color {
+    /// "#RRGGBB" for persisting a chosen color. Pairs with `Color(hex:)`.
+    func toHex() -> String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X", Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
+    }
+
+    /// A lighter, slightly less saturated variant — used to build accent gradients.
+    func lighter(_ amount: Double = 0.3) -> Color {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        return Color(hue: Double(h), saturation: max(0, Double(s) - amount * 0.6),
+                     brightness: min(1, Double(b) + amount))
+    }
+}
+
+/// A two-stop gradient from a lighter tint to the accent color.
+func accentGradient(_ hex: String) -> LinearGradient {
+    let c = Color(hex: hex)
+    return LinearGradient(colors: [c.lighter(0.3), c], startPoint: .topLeading, endPoint: .bottomTrailing)
+}
 
 extension View {
     /// iOS 26 "Liquid Glass" background clipped to `shape`; frosted-material

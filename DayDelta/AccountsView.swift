@@ -18,14 +18,19 @@ struct AccountsView: View {
 
     /// Background base color (shared with GrainientBackground via AppStorage).
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
-    @State private var showingColorPicker = false
+    /// Accent color for the tab highlight, chips, pill, and Add button.
+    @AppStorage("accentHex") private var accentHex = "#5227FF"
+    private var bgColor: Binding<Color> {
+        Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() })
+    }
+    private var accentColor: Binding<Color> {
+        Binding(get: { Color(hex: accentHex) }, set: { accentHex = $0.toHex() })
+    }
 
     /// Text/graphic colors track the chosen background for maximum contrast.
     private enum Palette {
         static var text: Color { .appInk }
         static var textSoft: Color { Color.appInk.opacity(0.72) }
-        static let accent = Color(hex: "#FFCEFD")                           // grainient pink
-        static let accent2 = Color(hex: "#5227FF")                          // grainient purple
         static var subcard: Color { Color.appInk.opacity(0.1) }
         static var stroke: Color { Color.appInk.opacity(0.22) }
     }
@@ -83,11 +88,6 @@ struct AccountsView: View {
             NavigationStack { AccountManagerView(accounts: $accounts) }
                 .preferredColorScheme(.dark).tint(.white)
         }
-        .sheet(isPresented: $showingColorPicker) {
-            ColorPickerPanel(hex: $bgHex)
-                .presentationDetents([.height(640), .large])
-                .preferredColorScheme(.dark)
-        }
         .onChange(of: accounts) { _, new in
             AccountStore.save(new)
             if let selected, !new.contains(where: { $0.id == selected }) { self.selected = nil }
@@ -110,13 +110,12 @@ struct AccountsView: View {
                     .foregroundStyle(Palette.text).lineLimit(1)
             }
             Spacer()
-            Button { showingColorPicker = true } label: {
-                Circle().fill(Color(hex: bgHex)).frame(width: 42, height: 42)
-                    .overlay(Circle().strokeBorder(Palette.stroke))
-                    .overlay(Image(systemName: "eyedropper").font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white).shadow(radius: 1))
+            HStack(spacing: 16) {
+                colorControl("Background", binding: bgColor)
+                colorControl("Accent", binding: accentColor)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .liquidGlass()
             Menu {
                 Picker("Account", selection: $selected) {
                     Text("All accounts").tag(UUID?.none)
@@ -138,6 +137,15 @@ struct AccountsView: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .liquidGlass()
+    }
+
+    /// A native color swatch with a small caption, for the header.
+    private func colorControl(_ title: String, binding: Binding<Color>) -> some View {
+        VStack(spacing: 3) {
+            ColorPicker(title, selection: binding, supportsOpacity: false).labelsHidden()
+            Text(title).font(.system(size: 9, weight: .medium, design: .rounded))
+                .foregroundStyle(Palette.textSoft)
+        }
     }
 
     // MARK: Balance block
@@ -163,9 +171,7 @@ struct AccountsView: View {
                 Text(String(format: "%+.0f%%", savingsRate))
                     .font(.system(.caption, design: .rounded)).foregroundStyle(.white)
                     .padding(.vertical, 5).padding(.horizontal, 10)
-                    .background(RoundedRectangle(cornerRadius: UI.radius).fill(LinearGradient(
-                        colors: [Palette.accent, Palette.accent2],
-                        startPoint: .leading, endPoint: .trailing)))
+                    .background(RoundedRectangle(cornerRadius: UI.radius).fill(accentGradient(accentHex)))
                     .contentTransition(.numericText(value: savingsRate))
                 Spacer(minLength: 0)
             }
@@ -184,9 +190,7 @@ struct AccountsView: View {
                         .foregroundStyle(on ? .white : Palette.text)
                         .padding(.vertical, 11).padding(.horizontal, 22)
                     if on {
-                        base.background(RoundedRectangle(cornerRadius: UI.radius).fill(LinearGradient(
-                            colors: [Palette.accent, Palette.accent2],
-                            startPoint: .leading, endPoint: .trailing)))
+                        base.background(RoundedRectangle(cornerRadius: UI.radius).fill(accentGradient(accentHex)))
                     } else {
                         base.liquidGlass()
                     }

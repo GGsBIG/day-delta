@@ -22,6 +22,8 @@ private struct RootView: View {
     @Namespace private var tabNS
     /// Observed so the tab bar's ink recomputes when the background color changes.
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
+    /// Accent color for the selected-tab highlight and Add button.
+    @AppStorage("accentHex") private var accentHex = "#5227FF"
 
     /// Horizontal slide whose direction follows whether we moved to a higher or
     /// lower tab index — new page in from the far side, old page out the near side.
@@ -103,9 +105,7 @@ private struct RootView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
-                .background(Circle().fill(LinearGradient(
-                    colors: [Color(hex: "#FFCEFD"), Color(hex: "#5227FF")],
-                    startPoint: .topLeading, endPoint: .bottomTrailing)))
+                .background(Circle().fill(accentGradient(accentHex)))
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact, trigger: requestAddTxn)
@@ -124,8 +124,7 @@ private struct RootView: View {
                 .background {
                     if tab == i {
                         Circle()
-                            .fill(LinearGradient(colors: [Color(hex: "#FFCEFD"), Color(hex: "#5227FF")],
-                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(accentGradient(accentHex))
                             .matchedGeometryEffect(id: "tabHighlight", in: tabNS)
                     }
                 }
