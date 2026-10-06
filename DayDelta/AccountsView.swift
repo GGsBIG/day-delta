@@ -20,12 +20,7 @@ struct AccountsView: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     /// Accent color for the tab highlight, chips, pill, and Add button.
     @AppStorage("accentHex") private var accentHex = "#5227FF"
-    private var bgColor: Binding<Color> {
-        Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() })
-    }
-    private var accentColor: Binding<Color> {
-        Binding(get: { Color(hex: accentHex) }, set: { accentHex = $0.toHex() })
-    }
+    @State private var showingColors = false
 
     /// Text/graphic colors track the chosen background for maximum contrast.
     private enum Palette {
@@ -88,6 +83,9 @@ struct AccountsView: View {
             NavigationStack { AccountManagerView(accounts: $accounts) }
                 .preferredColorScheme(.dark).tint(.white)
         }
+        .sheet(isPresented: $showingColors) {
+            ColorSettingsView().presentationDetents([.medium, .large])
+        }
         .onChange(of: accounts) { _, new in
             AccountStore.save(new)
             if let selected, !new.contains(where: { $0.id == selected }) { self.selected = nil }
@@ -110,12 +108,13 @@ struct AccountsView: View {
                     .foregroundStyle(Palette.text).lineLimit(1)
             }
             Spacer()
-            HStack(spacing: 16) {
-                colorControl("Background", binding: bgColor)
-                colorControl("Accent", binding: accentColor)
+            Button { showingColors = true } label: {
+                Image(systemName: "paintpalette.fill")
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.text)
+                    .frame(width: 42, height: 42)
+                    .liquidGlass(Circle())
             }
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .liquidGlass()
+            .buttonStyle(.plain)
             Menu {
                 Picker("Account", selection: $selected) {
                     Text("All accounts").tag(UUID?.none)
@@ -137,15 +136,6 @@ struct AccountsView: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .liquidGlass()
-    }
-
-    /// A native color swatch with a small caption, for the header.
-    private func colorControl(_ title: String, binding: Binding<Color>) -> some View {
-        VStack(spacing: 3) {
-            ColorPicker(title, selection: binding, supportsOpacity: false).labelsHidden()
-            Text(title).font(.system(size: 9, weight: .medium, design: .rounded))
-                .foregroundStyle(Palette.textSoft)
-        }
     }
 
     // MARK: Balance block
@@ -281,6 +271,46 @@ struct AccountsView: View {
         let ids: [UUID?] = [nil] + accounts.map { $0.id }
         let i = ids.firstIndex(of: selected) ?? 0
         selected = ids[(i + 1) % ids.count]
+    }
+}
+
+/// A small page for picking the background and accent colors. Reads/writes the
+/// same AppStorage keys, so changes apply app-wide live.
+struct ColorSettingsView: View {
+    @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
+    @AppStorage("accentHex") private var accentHex = "#5227FF"
+    @Environment(\.dismiss) private var dismiss
+
+    private var bg: Binding<Color> { Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() }) }
+    private var accent: Binding<Color> { Binding(get: { Color(hex: accentHex) }, set: { accentHex = $0.toHex() }) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Background") {
+                    ColorPicker(selection: bg, supportsOpacity: false) {
+                        Label("Background color", systemImage: "photo.fill")
+                    }
+                }
+                Section {
+                    ColorPicker(selection: accent, supportsOpacity: false) {
+                        Label("Accent color", systemImage: "paintbrush.pointed.fill")
+                    }
+                } header: {
+                    Text("Accent")
+                } footer: {
+                    Text("Used for the selected tab, chips, the change pill, and the Add button.")
+                }
+            }
+            .font(.system(.body, design: .rounded))
+            .scrollContentBackground(.hidden)
+            .background(GrainientBackground().ignoresSafeArea())
+            .navigationTitle("Colors")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+        .preferredColorScheme(.dark)
+        .tint(.white)
     }
 }
 
