@@ -311,49 +311,31 @@ private struct AvatarStack: View {
     }
 }
 
-/// Grainient backdrop: drifting pink→purple gradient blobs over a purple base,
-/// finished with a film-grain overlay and boosted contrast. Animates forever via
-/// TimelineView(.animation).
-/// ponytail: gradient-blob approximation of the Grainient shader — the Metal
-/// toolchain isn't installed here. Swap for a `.colorEffect` shader if it is.
+/// Grainient backdrop: the `grainient` Metal shader paints a warped, grainy
+/// gradient from three colors derived from the chosen background color. Every
+/// tab reads the same stored color, so recoloring recolors the whole app.
 struct GrainientBackground: View {
-    /// Shared base color, chosen on the Accounts page. Every tab reads this key,
-    /// so recoloring there recolors the whole app's backdrop.
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
 
-    private typealias Geo = (base: (Double, Double), amp: (Double, Double),
-                             speed: Double, phase: Double, r: CGFloat, blend: BlendMode)
-    private let geos: [Geo] = [
-        ((0.30, 0.24), (0.18, 0.12), 0.22, 0.0, 520, .screen),
-        ((0.76, 0.62), (0.16, 0.14), 0.17, 1.5, 480, .screen),
-        ((0.50, 0.92), (0.20, 0.12), 0.20, 3.0, 440, .screen),
-        ((0.20, 0.80), (0.14, 0.16), 0.15, 4.2, 420, .multiply),
-    ]
-
     var body: some View {
-        let p = palette(Color(hex: bgHex))
-        TimelineView(.animation) { timeline in
-            let t = timeline.date.timeIntervalSinceReferenceDate
-            ZStack {
-                LinearGradient(colors: [p.top, p.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
-                ForEach(geos.indices, id: \.self) { i in
-                    let g = geos[i]
-                    let x = g.base.0 + g.amp.0 * sin(t * g.speed + g.phase)
-                    let y = g.base.1 + g.amp.1 * cos(t * g.speed * 0.9 + g.phase)
-                    RadialGradient(colors: [p.blobs[i], p.blobs[i].opacity(0)],
-                                   center: UnitPoint(x: x, y: y), startRadius: 0, endRadius: g.r)
-                        .blendMode(g.blend)
-                }
+        let (c1, c2, c3) = Self.colors(for: Color(hex: bgHex))
+        GeometryReader { geo in
+            TimelineView(.animation) { timeline in
+                // Keep time small so float32 precision in the shader stays stable.
+                let t = timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1000)
+                Rectangle()
+                    .colorEffect(ShaderLibrary.grainient(
+                        .float2(Float(geo.size.width), Float(geo.size.height)),
+                        .float(Float(t)),
+                        .color(c1), .color(c2), .color(c3)))
             }
-            .contrast(1.5)
-            .overlay(GrainTexture.image.opacity(0.09).blendMode(.overlay))
-            .ignoresSafeArea()
         }
+        .ignoresSafeArea()
     }
 
-    /// Derive the base gradient + four blob colors from one chosen color by
-    /// shifting hue/saturation/brightness around it.
-    private func palette(_ base: Color) -> (top: Color, bottom: Color, blobs: [Color]) {
+    /// Three gradient colors from one chosen color: a light tint, the color
+    /// itself, and a deep shade — by shifting hue/saturation/brightness.
+    static func colors(for base: Color) -> (Color, Color, Color) {
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         UIColor(base).getHue(&h, saturation: &s, brightness: &b, alpha: &a)
         let S = Double(s), B = Double(b)
@@ -362,14 +344,9 @@ struct GrainientBackground: View {
             return Color(hue: hue, saturation: min(max(sat, 0), 1), brightness: min(max(bri, 0), 1))
         }
         return (
-            top: c(0, S, max(0.28, B * 0.8)),
-            bottom: c(-8, min(1, S + 0.1), max(0.12, B * 0.35)),
-            blobs: [
-                c(12, S * 0.45, 0.99),                      // light tint
-                c(28, S * 0.8, min(1, B + 0.05)),           // hue-shifted
-                c(0, S, B),                                 // the chosen color
-                c(-18, min(1, S + 0.1), max(0.1, B * 0.3)), // deep shadow
-            ]
+            c(14, S * 0.5, min(1, B * 0.4 + 0.6)),      // light tint
+            c(0, S, max(0.32, B)),                      // the chosen color
+            c(-18, min(1, S + 0.1), max(0.12, B * 0.4)) // deep shade
         )
     }
 }
@@ -381,23 +358,6 @@ private extension Color {
         UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
         return String(format: "#%02X%02X%02X", Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
     }
-}
-
-/// A tiled static noise image for film grain, built once.
-private enum GrainTexture {
-    static let image: Image = {
-        let n = 128, bytes = n * n * 4
-        var px = [UInt8](repeating: 255, count: bytes)
-        for i in 0..<(n * n) {
-            let v = UInt8.random(in: 0...255)
-            px[i * 4] = v; px[i * 4 + 1] = v; px[i * 4 + 2] = v
-        }
-        let ctx = CGContext(data: &px, width: n, height: n, bitsPerComponent: 8,
-                            bytesPerRow: n * 4, space: CGColorSpaceCreateDeviceRGB(),
-                            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
-        guard let cg = ctx?.makeImage() else { return Image(systemName: "circle") }
-        return Image(decorative: cg, scale: 1).resizable(resizingMode: .tile)
-    }()
 }
 
 /// Axis-free mini balance curve for the card: smooth monotone line, faint area
