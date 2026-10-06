@@ -156,7 +156,7 @@ struct LedgerView: View {
     private func row(_ t: Txn) -> some View {
         let c = categories.first { $0.id == t.categoryID }
         return HStack {
-            Circle().fill(Color(hex: c?.colorHex ?? "#9CA3AF")).frame(width: 12, height: 12)
+            CategoryBadge(category: c ?? Category(name: "—", type: t.type, icon: nil, colorHex: "#9CA3AF"), size: 30)
             VStack(alignment: .leading) {
                 Text(c?.name ?? "—").font(.system(.body, design: .rounded))
                 if let note = t.note {

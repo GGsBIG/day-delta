@@ -6,6 +6,20 @@ let eventIconNames = [
     "ic-book", "ic-briefcase", "ic-ring", "ic-target", "ic-clock", "ic-graduation",
 ]
 
+/// SF Symbols offered for categories (rendered with Image(systemName:)). ~30 to
+/// pick from when creating a custom category.
+let categoryIconNames = [
+    "fork.knife", "cup.and.saucer.fill", "cart.fill", "bag.fill",
+    "car.fill", "bus.fill", "fuelpump.fill", "airplane",
+    "house.fill", "bed.double.fill", "bolt.fill", "drop.fill",
+    "wifi", "phone.fill", "gamecontroller.fill", "film.fill",
+    "music.note", "book.fill", "graduationcap.fill", "pawprint.fill",
+    "cross.case.fill", "pills.fill", "dumbbell.fill", "tshirt.fill",
+    "scissors", "wrench.and.screwdriver.fill", "gift.fill", "creditcard.fill",
+    "dollarsign.circle.fill", "building.columns.fill", "chart.line.uptrend.xyaxis", "briefcase.fill",
+    "ellipsis.circle.fill",
+]
+
 /// Whole-day difference between two dates, each normalized to start-of-day.
 /// Positive = target in the future (countdown), negative = past (count-up), 0 = today.
 /// Normalizing both to startOfDay first avoids the off-by-one where a sub-24h

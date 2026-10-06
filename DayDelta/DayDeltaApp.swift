@@ -101,9 +101,9 @@ private struct RootView: View {
             requestAddTxn = true
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
+                .frame(width: 50, height: 50)
                 .background(Circle().fill(LinearGradient(
                     colors: [Color(hex: "#FFCEFD"), Color(hex: "#5227FF")],
                     startPoint: .topLeading, endPoint: .bottomTrailing)))

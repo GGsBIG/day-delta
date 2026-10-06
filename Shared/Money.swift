@@ -35,17 +35,17 @@ extension Category {
     /// Seeded on first launch. IDs are per-process stable (a `static let`), then
     /// persisted by `CategoryStore.load()`, so they stay fixed after first run.
     static let builtins: [Category] = [
-        .init(name: "Food", type: .expense, icon: nil, colorHex: "#4F9DFF", builtin: true),
-        .init(name: "Transport", type: .expense, icon: nil, colorHex: "#A855F7", builtin: true),
-        .init(name: "Shopping", type: .expense, icon: nil, colorHex: "#F59E0B", builtin: true),
-        .init(name: "Entertainment", type: .expense, icon: nil, colorHex: "#22C55E", builtin: true),
-        .init(name: "Housing", type: .expense, icon: nil, colorHex: "#EF4444", builtin: true),
-        .init(name: "Health", type: .expense, icon: nil, colorHex: "#14B8A6", builtin: true),
-        .init(name: "Other", type: .expense, icon: nil, colorHex: "#9CA3AF", builtin: true),
-        .init(name: "Salary", type: .income, icon: nil, colorHex: "#22C55E", builtin: true),
-        .init(name: "Bonus", type: .income, icon: nil, colorHex: "#4F9DFF", builtin: true),
-        .init(name: "Investment", type: .income, icon: nil, colorHex: "#F59E0B", builtin: true),
-        .init(name: "Other", type: .income, icon: nil, colorHex: "#9CA3AF", builtin: true),
+        .init(name: "Food", type: .expense, icon: "fork.knife", colorHex: "#4F9DFF", builtin: true),
+        .init(name: "Transport", type: .expense, icon: "car.fill", colorHex: "#A855F7", builtin: true),
+        .init(name: "Shopping", type: .expense, icon: "bag.fill", colorHex: "#F59E0B", builtin: true),
+        .init(name: "Entertainment", type: .expense, icon: "gamecontroller.fill", colorHex: "#22C55E", builtin: true),
+        .init(name: "Housing", type: .expense, icon: "house.fill", colorHex: "#EF4444", builtin: true),
+        .init(name: "Health", type: .expense, icon: "cross.case.fill", colorHex: "#14B8A6", builtin: true),
+        .init(name: "Other", type: .expense, icon: "ellipsis.circle.fill", colorHex: "#9CA3AF", builtin: true),
+        .init(name: "Salary", type: .income, icon: "dollarsign.circle.fill", colorHex: "#22C55E", builtin: true),
+        .init(name: "Bonus", type: .income, icon: "gift.fill", colorHex: "#4F9DFF", builtin: true),
+        .init(name: "Investment", type: .income, icon: "chart.line.uptrend.xyaxis", colorHex: "#F59E0B", builtin: true),
+        .init(name: "Other", type: .income, icon: "ellipsis.circle.fill", colorHex: "#9CA3AF", builtin: true),
     ]
 }
 

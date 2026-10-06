@@ -1,4 +1,43 @@
 import SwiftUI
+import UIKit
+
+/// A category's badge: its color disc with its SF Symbol icon (if any). Shared by
+/// the ledger, stats, and category manager.
+struct CategoryBadge: View {
+    let category: Category
+    var size: CGFloat = 28
+    var body: some View {
+        Circle().fill(Color(hex: category.colorHex))
+            .frame(width: size, height: size)
+            .overlay {
+                if let icon = category.icon, UIImage(systemName: icon) != nil {
+                    Image(systemName: icon).font(.system(size: size * 0.5))
+                        .foregroundStyle(.white)
+                }
+            }
+    }
+}
+
+/// Grid of SF Symbols for choosing a category icon. Tapping the current one clears it.
+struct CategoryIconPicker: View {
+    @Binding var selection: String?
+    private let cols = [GridItem(.adaptive(minimum: 46), spacing: 10)]
+    var body: some View {
+        LazyVGrid(columns: cols, spacing: 10) {
+            ForEach(categoryIconNames, id: \.self) { name in
+                let on = selection == name
+                Image(systemName: name)
+                    .font(.system(size: 18))
+                    .frame(width: 44, height: 44)
+                    .foregroundStyle(on ? .white : Color.appInk)
+                    .background(RoundedRectangle(cornerRadius: UI.radius)
+                        .fill(on ? AnyShapeStyle(.tint) : AnyShapeStyle(Color.appInk.opacity(0.08))))
+                    .contentShape(RoundedRectangle(cornerRadius: UI.radius))
+                    .onTapGesture { selection = on ? nil : name }
+            }
+        }
+    }
+}
 
 /// Add / rename / recolor / delete categories. Built-ins can't be deleted.
 struct CategoryManagerView: View {
@@ -55,7 +94,7 @@ struct CategoryManagerView: View {
 
     private func row(_ c: Category) -> some View {
         HStack {
-            Circle().fill(Color(hex: c.colorHex)).frame(width: 14, height: 14)
+            CategoryBadge(category: c, size: 28)
             Text(c.name.isEmpty ? "(unnamed)" : c.name)
             Spacer()
             if c.builtin { Text("built-in").foregroundStyle(Color.appInk.opacity(0.6)).font(.caption) }
@@ -106,7 +145,7 @@ private struct CategoryEditSheet: View {
                         }
                     }
                 }
-                Section("Icon") { IconPicker(selection: $category.icon) }
+                Section("Icon") { CategoryIconPicker(selection: $category.icon) }
                 if category.type == .expense {
                     Section {
                         Toggle("Count as investment / savings", isOn: $category.isInvestment)

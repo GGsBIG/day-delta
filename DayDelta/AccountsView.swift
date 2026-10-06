@@ -18,9 +18,7 @@ struct AccountsView: View {
 
     /// Background base color (shared with GrainientBackground via AppStorage).
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
-    private var bgColor: Binding<Color> {
-        Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() })
-    }
+    @State private var showingColorPicker = false
 
     /// Text/graphic colors track the chosen background for maximum contrast.
     private enum Palette {
@@ -86,6 +84,11 @@ struct AccountsView: View {
             NavigationStack { AccountManagerView(accounts: $accounts) }
                 .preferredColorScheme(.dark).tint(.white)
         }
+        .sheet(isPresented: $showingColorPicker) {
+            ColorPickerPanel(hex: $bgHex)
+                .presentationDetents([.height(640), .large])
+                .preferredColorScheme(.dark)
+        }
         .onChange(of: accounts) { _, new in
             AccountStore.save(new)
             if let selected, !new.contains(where: { $0.id == selected }) { self.selected = nil }
@@ -108,9 +111,13 @@ struct AccountsView: View {
                     .foregroundStyle(Palette.text).lineLimit(1)
             }
             Spacer()
-            ColorPicker("Background color", selection: bgColor, supportsOpacity: false)
-                .labelsHidden()
-                .frame(width: 42, height: 42)
+            Button { showingColorPicker = true } label: {
+                Circle().fill(Color(hex: bgHex)).frame(width: 42, height: 42)
+                    .overlay(Circle().strokeBorder(Palette.stroke))
+                    .overlay(Image(systemName: "eyedropper").font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white).shadow(radius: 1))
+            }
+            .buttonStyle(.plain)
             Menu {
                 Picker("Account", selection: $selected) {
                     Text("All accounts").tag(UUID?.none)
@@ -343,20 +350,12 @@ struct GrainientBackground: View {
             var hue = (Double(h) + dh / 360).truncatingRemainder(dividingBy: 1); if hue < 0 { hue += 1 }
             return Color(hue: hue, saturation: min(max(sat, 0), 1), brightness: min(max(bri, 0), 1))
         }
+        // Stay close to the chosen hue (±6°) so e.g. pink doesn't drift to purple.
         return (
-            c(14, S * 0.5, min(1, B * 0.4 + 0.6)),      // light tint
-            c(0, S, max(0.32, B)),                      // the chosen color
-            c(-18, min(1, S + 0.1), max(0.12, B * 0.4)) // deep shade
+            c(6, S * 0.5, min(1, B * 0.35 + 0.6)),      // light tint
+            c(0, S, max(0.4, B)),                       // the chosen color
+            c(-6, min(1, S), max(0.16, B * 0.45))       // deep shade
         )
-    }
-}
-
-private extension Color {
-    /// "#RRGGBB" for persisting a chosen color. Pairs with `Color(hex:)`.
-    func toHex() -> String {
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        UIColor(self).getRed(&r, green: &g, blue: &b, alpha: &a)
-        return String(format: "#%02X%02X%02X", Int(round(r * 255)), Int(round(g * 255)), Int(round(b * 255)))
     }
 }
 

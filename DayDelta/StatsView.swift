@@ -101,7 +101,11 @@ struct StatsView: View {
         VStack(spacing: 10) {
             ForEach(breakdown, id: \.categoryID) { item in
                 HStack {
-                    Circle().fill(color(item.categoryID)).frame(width: 12, height: 12)
+                    if let c = categories.first(where: { $0.id == item.categoryID }) {
+                        CategoryBadge(category: c, size: 26)
+                    } else {
+                        Circle().fill(color(item.categoryID)).frame(width: 26, height: 26)
+                    }
                     Text(name(item.categoryID))
                     Spacer()
                     Text(formatMoney(item.total)).foregroundStyle(Color.appInk.opacity(0.6))
