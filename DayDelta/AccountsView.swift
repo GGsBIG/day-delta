@@ -286,6 +286,7 @@ struct ColorSettingsView: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     @AppStorage("accentHex") private var accentHex = "#5227FF"
     @AppStorage("panelHex") private var panelHex = "#FFFFFF26"
+    @AppStorage("appLockEnabled") private var appLockEnabled = false
     @Environment(\.dismiss) private var dismiss
 
     private var bg: Binding<Color> { Binding(get: { Color(hex: bgHex) }, set: { bgHex = $0.toHex() }) }
@@ -317,6 +318,16 @@ struct ColorSettingsView: View {
                     Text("Panels")
                 } footer: {
                     Text("The Account page's cards and frames. Drag opacity to 0 for transparent; pick pure white or black. Solid color — no glass.")
+                }
+                Section {
+                    Toggle(isOn: $appLockEnabled) {
+                        Label("Require Face ID", systemImage: "faceid")
+                    }
+                    .onChange(of: appLockEnabled) { _, on in if on { LockManager.shared.lock() } }
+                } header: {
+                    Text("Privacy")
+                } footer: {
+                    Text("Lock the app with Face ID / Touch ID / passcode on launch and when returning from the background.")
                 }
             }
             .font(.system(.body, design: .rounded))

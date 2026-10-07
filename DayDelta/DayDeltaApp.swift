@@ -27,6 +27,8 @@ private struct RootView: View {
     @AppStorage("accentHex") private var accentHex = "#5227FF"
     /// Panel color drives the tab bar fill; observed so it updates live.
     @AppStorage("panelHex") private var panelHex = "#FFFFFF26"
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var lock = LockManager.shared
 
     /// Nearest page — drives the highlight, Add button, and haptics.
     private var tab: Int { Int(progress.rounded()) }
@@ -43,6 +45,14 @@ private struct RootView: View {
         .sensoryFeedback(.selection, trigger: tab)
         .fontDesign(.rounded)
         .fontWeight(.thin)
+        .fullScreenCover(isPresented: Binding(get: { lock.locked }, set: { _ in })) {
+            LockScreen { lock.unlockIfNeeded() }
+        }
+        .task { lock.unlockIfNeeded() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { lock.unlockIfNeeded() }
+            else if phase == .background { lock.lock() }
+        }
     }
 
     /// Custom offset pager: four full-width pages in a row, shifted by `progress`.
