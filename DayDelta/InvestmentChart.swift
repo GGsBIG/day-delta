@@ -36,43 +36,24 @@ struct InvestmentChartCard: View {
     private var readout: Decimal { selectedPoint?.value ?? total }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
-            bigNumber
+        VStack(alignment: .leading, spacing: 16) {
+            valueBlock
+            periodRow
+            chart.frame(height: 190)
             legend
-            chart.frame(height: 200)
         }
         .padding(.vertical, 8)
         .task(id: "\(period.rawValue)|\(signature)") { await reload() }
     }
 
-    // MARK: Header
+    // MARK: Value block (matches the Accounts "Spend Account" style)
 
-    private var header: some View {
-        HStack {
-            Text("Portfolio").font(.system(.title3, design: .rounded)).bold().foregroundStyle(.white)
-            Spacer()
-            HStack(spacing: 2) {
-                ForEach(ChartPeriod.allCases) { p in
-                    let on = period == p
-                    Button { period = p } label: {
-                        Text(p.label)
-                            .font(.system(.footnote, design: .rounded)).fontWeight(on ? .bold : .regular)
-                            .foregroundStyle(on ? .white : .white.opacity(0.5))
-                            .padding(.vertical, 6).padding(.horizontal, 10)
-                            .background { if on { Capsule().fill(accentGradient(accentHex)) } }
-                    }.buttonStyle(.plain)
-                }
-            }
-            .padding(3).background(Capsule().fill(.white.opacity(0.06)))
-        }
-    }
-
-    private var bigNumber: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(selected == nil ? "Total value" : "At point").font(.caption).foregroundStyle(.white.opacity(0.6))
+    private var valueBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(selected == nil ? "Portfolio value" : "At point")
+                .font(.system(.title3, design: .rounded)).foregroundStyle(.white.opacity(0.7))
             Text(formatMoney(readout))
-                .font(.system(size: 46, weight: .bold, design: .rounded)).tracking(-1)
+                .font(.system(size: 52, weight: .thin, design: .rounded)).tracking(-1.5)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (readout as NSDecimalNumber).doubleValue))
                 .animation(.snappy(duration: 0.3), value: readout)
@@ -81,14 +62,35 @@ struct InvestmentChartCard: View {
                     .font(.system(.subheadline, design: .rounded)).foregroundStyle(.white.opacity(0.7))
             } else {
                 HStack(spacing: 10) {
-                    Text("\(gain >= 0 ? "+" : "")\(formatMoney(gain)) (\(String(format: "%+.1f%%", gainPct)))")
+                    Text("\(gain >= 0 ? "+" : "")\(formatMoney(gain))")
                         .font(.system(.subheadline, design: .rounded)).bold()
                         .foregroundStyle(gain >= 0 ? .green : .red)
-                    Text(String(format: "· %+.1f%% vs prev %dd", pct, period.rawValue))
-                        .font(.caption).foregroundStyle(.white.opacity(0.55))
+                    Text(String(format: "%+.1f%%", gainPct))
+                        .font(.system(.caption, design: .rounded)).bold().foregroundStyle(.white)
+                        .padding(.vertical, 4).padding(.horizontal, 10)
+                        .background(Capsule().fill(accentGradient(accentHex)))
+                    Text(String(format: "· vs prev %dd %+.1f%%", period.rawValue, pct))
+                        .font(.caption).foregroundStyle(.white.opacity(0.5))
                 }
             }
         }
+    }
+
+    private var periodRow: some View {
+        HStack(spacing: 2) {
+            ForEach(ChartPeriod.allCases) { p in
+                let on = period == p
+                Button { period = p } label: {
+                    Text(p.label)
+                        .font(.system(.footnote, design: .rounded)).fontWeight(on ? .bold : .regular)
+                        .foregroundStyle(on ? .white : .white.opacity(0.5))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background { if on { Capsule().fill(accentGradient(accentHex)) } }
+                }.buttonStyle(.plain)
+            }
+        }
+        .padding(3).background(Capsule().fill(.white.opacity(0.06)))
     }
 
     private var legend: some View {
