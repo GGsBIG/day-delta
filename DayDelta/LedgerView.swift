@@ -3,9 +3,10 @@ import SwiftUI
 /// The Ledger tab: a month calendar with a per-day transaction list; edit opens
 /// the category/account manager. Owns the shared txn/category/account state.
 struct LedgerView: View {
-    @State private var txns: [Txn] = TxnStore.load()
-    @State private var categories: [Category] = CategoryStore.load()
-    @State private var accounts: [Account] = AccountStore.load()
+    @State private var app = AppData.shared
+    private var txns: [Txn] { app.txns }
+    private var categories: [Category] { app.categories }
+    private var accounts: [Account] { app.accounts }
     @State private var editingTxn: Txn?
     @State private var managing = false
     @State private var monthAnchor = Date()
@@ -29,27 +30,16 @@ struct LedgerView: View {
         .sheet(isPresented: $requestAddTxn) {
             TxnEditView(txn: nil, categories: categories, accounts: accounts,
                         defaultDate: selectedDay) { saved in
-                txns.append(saved); persist()
+                app.addTxn(saved); persist()
             }
         }
         .sheet(item: $editingTxn) { t in
             TxnEditView(txn: t, categories: categories, accounts: accounts) { saved in
-                if let i = txns.firstIndex(where: { $0.id == saved.id }) { txns[i] = saved }
-                persist()
+                app.updateTxn(saved); persist()
             }
         }
         .sheet(isPresented: $managing) {
-            ManageView(categories: $categories, accounts: $accounts)
-                .onDisappear {
-                    CategoryStore.save(categories)
-                    AccountStore.save(accounts)
-                }
-        }
-        // Pick up changes made by Backup import in the other tab.
-        .onAppear {
-            txns = TxnStore.load()
-            categories = CategoryStore.load()
-            accounts = AccountStore.load()
+            ManageView(categories: $app.categories, accounts: $app.accounts)
         }
     }
 
@@ -109,7 +99,7 @@ struct LedgerView: View {
 
     /// Delete a selected-day transaction by id.
     private func delete(_ t: Txn) {
-        txns.removeAll { $0.id == t.id }
+        app.deleteTxn(id: t.id)
         persist()
     }
 
@@ -130,5 +120,6 @@ struct LedgerView: View {
         }
     }
 
-    private func persist() { TxnStore.save(txns) }
+    /// AppData persists txns automatically; this only keeps notifications in sync.
+    private func persist() {}
 }

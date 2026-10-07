@@ -164,10 +164,9 @@ struct ContentView: View {
 
         if let backup = try? JSONDecoder().decode(BackupData.self, from: data) {
             merge(backup.events)
-            mergeTxns(backup.txns)
-            mergeCategories(backup.categories)
-            mergeAccounts(backup.accounts)
-            mergeHoldings(backup.holdings)
+            // Route money records through AppData so every tab updates live.
+            AppData.shared.merge(txns: backup.txns, categories: backup.categories,
+                                 accounts: backup.accounts, holdings: backup.holdings)
         } else if let legacy = try? JSONDecoder().decode([Event].self, from: data) {
             merge(legacy)
         }
@@ -179,42 +178,6 @@ struct ContentView: View {
             if let i = events.firstIndex(where: { $0.id == e.id }) { events[i] = e }
             else { events.append(e) }
         }
-    }
-
-    private func mergeTxns(_ imported: [Txn]) {
-        var txns = TxnStore.load()
-        for t in imported {
-            if let i = txns.firstIndex(where: { $0.id == t.id }) { txns[i] = t }
-            else { txns.append(t) }
-        }
-        TxnStore.save(txns)
-    }
-
-    private func mergeCategories(_ imported: [Category]) {
-        var cats = CategoryStore.load()
-        for c in imported {
-            if let i = cats.firstIndex(where: { $0.id == c.id }) { cats[i] = c }
-            else { cats.append(c) }
-        }
-        CategoryStore.save(cats)
-    }
-
-    private func mergeAccounts(_ imported: [Account]) {
-        var accs = AccountStore.load()
-        for a in imported {
-            if let i = accs.firstIndex(where: { $0.id == a.id }) { accs[i] = a }
-            else { accs.append(a) }
-        }
-        AccountStore.save(accs)
-    }
-
-    private func mergeHoldings(_ imported: [Holding]) {
-        var items = HoldingStore.load()
-        for h in imported {
-            if let i = items.firstIndex(where: { $0.id == h.id }) { items[i] = h }
-            else { items.append(h) }
-        }
-        HoldingStore.save(items)
     }
 
     private func persist() {

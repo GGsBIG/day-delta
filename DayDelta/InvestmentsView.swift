@@ -1,16 +1,19 @@
 import SwiftUI
 
-/// Portfolio overview: total market value, cost, and unrealized P/L, plus a list
-/// of holdings. Prices are entered by hand. Opened as a sheet from Accounts.
+/// Portfolio tab: kind switcher, total value + P/L, and holdings grouped by stock.
+/// Prices come from live quotes (gold is priced in TWD per 兩). Lives in the pager.
 struct InvestmentsView: View {
-    @State private var holdings: [Holding] = HoldingStore.load()
-    @State private var accounts: [Account] = AccountStore.load()
+    @State private var app = AppData.shared
     @State private var editing: Holding?
     @State private var viewingGroup: GroupKey?
+    @State private var filter: String? = nil      // nil = All; else a kind name
     @State private var refreshing = false
 
     private struct GroupKey: Identifiable { let id: String }
 
+    private var holdings: [Holding] {
+        filter == nil ? app.holdings : app.holdings.filter { $0.kind == filter }
+    }
     private var groups: [HoldingGroup] { groupHoldings(holdings) }
 
     private var totalValue: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
@@ -33,11 +36,12 @@ struct InvestmentsView: View {
                             .font(.system(size: 22, weight: .semibold)).foregroundStyle(Color.appInk)
                     }
                 }
-                Button { editing = newHolding() } label: {
+                Button { editing = Holding(kind: kindUSStocks, name: "", quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 24, weight: .semibold)).foregroundStyle(Color.appInk)
                 }
             }
+            switcher
             if holdings.isEmpty {
                 ContentUnavailableView("No investments", systemImage: "chart.line.uptrend.xyaxis",
                     description: Text("Tap + to add a holding."))
@@ -50,7 +54,7 @@ struct InvestmentsView: View {
                             Button { viewingGroup = GroupKey(id: g.key) } label: { groupRow(g) }.buttonStyle(.plain)
                                 .swipeActions {
                                     Button(role: .destructive) {
-                                        HoldingService.delete(ids: g.lots.map(\.id)); reload()
+                                        app.deleteHoldings(ids: g.lots.map(\.id))
                                     } label: { Label("Delete", systemImage: "trash") }
                                 }
                         }
@@ -64,33 +68,52 @@ struct InvestmentsView: View {
         }
         .preferredColorScheme(.dark).tint(.white)
         .sheet(item: $editing) { h in
-            HoldingEditSheet(holding: h, accounts: accounts) { saved in
-                HoldingService.save(saved); reload(); editing = nil
-            }
+            HoldingEditSheet(holding: h) { saved in app.saveHolding(saved); editing = nil }
         }
         .sheet(item: $viewingGroup) { key in
-            HoldingGroupSheet(groupKey: key.id, accounts: accounts) { reload() }
+            HoldingGroupSheet(groupKey: key.id)
         }
-        .onAppear { reload(); accounts = AccountStore.load() }
         .task { await refreshQuotes() }
     }
 
-    private func newHolding() -> Holding {
-        Holding(kind: investmentKinds[0].name, name: "", quantity: 0, costPerUnit: 0, currentPrice: 0)
+    // MARK: Kind switcher (All / US / TW / Gold)
+
+    private var switcher: some View {
+        let kinds: [String?] = [nil] + investmentKinds.map { $0.name }
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(kinds.indices, id: \.self) { i in
+                    let k = kinds[i]
+                    let on = filter == k
+                    Button { filter = k } label: {
+                        Text(k ?? "All")
+                            .font(.system(.subheadline, design: .rounded)).fontWeight(.medium)
+                            .foregroundStyle(on ? .white : Color.appInk)
+                            .padding(.vertical, 8).padding(.horizontal, 16)
+                            .background(Capsule().fill(on ? AnyShapeStyle(Color.appInk.opacity(0.9)) : AnyShapeStyle(Color.appInk.opacity(0.1))))
+                    }.buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal).padding(.bottom, 4)
+        }
     }
 
-    private func reload() { holdings = HoldingStore.load() }
-
-    /// Pull live prices once per unique symbol, applied to all lots of that symbol.
+    /// Pull live prices once per unique symbol (+ gold via its own endpoint).
     private func refreshQuotes() async {
-        let symbols = Set(holdings.map(\.symbol).filter { !$0.isEmpty })
-        guard !symbols.isEmpty else { return }
+        let hasGold = app.holdings.contains { $0.kind == kindGold }
+        let symbols = Set(app.holdings.filter { $0.kind != kindGold }.map(\.symbol).filter { !$0.isEmpty })
+        guard hasGold || !symbols.isEmpty else { return }
         refreshing = true
         defer { refreshing = false }
         var prices: [String: Decimal] = [:]
         for s in symbols { if let p = await QuoteService.price(for: s) { prices[s] = p } }
-        for i in holdings.indices { if let p = prices[holdings[i].symbol] { holdings[i].currentPrice = p } }
-        HoldingStore.save(holdings)
+        let gold = hasGold ? await QuoteService.goldPricePerTael() : nil
+        var next = app.holdings
+        for i in next.indices {
+            if next[i].kind == kindGold { if let g = gold { next[i].currentPrice = g } }
+            else if let p = prices[next[i].symbol] { next[i].currentPrice = p }
+        }
+        app.holdings = next
     }
 
     // MARK: Summary
@@ -120,7 +143,7 @@ struct InvestmentsView: View {
                 .foregroundStyle(Color(hex: kindColorHex(g.kind))).frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(g.name.isEmpty ? g.kind : g.name).foregroundStyle(.white)
-                Text("\(decimal(g.shares)) shares"
+                Text("\(decimal(g.shares)) \(unitLabel(g.kind))"
                      + (g.lots.count > 1 ? " · \(g.lots.count) buys" : ""))
                     .font(.caption).foregroundStyle(.white.opacity(0.6))
             }
@@ -136,16 +159,17 @@ struct InvestmentsView: View {
     }
 }
 
-/// Detail for one symbol group: aggregate header + each individual purchase, with
-/// add / edit / delete per lot.
+/// Quantity unit for a kind: gold is counted in 兩, everything else in shares.
+func unitLabel(_ kind: String) -> String { kind == kindGold ? "兩" : "shares" }
+
+/// Detail for one symbol group: aggregate header + each purchase (add/edit/delete).
 private struct HoldingGroupSheet: View {
     let groupKey: String
-    let accounts: [Account]
-    let onChange: () -> Void
-    @State private var lots: [Holding] = []
+    @State private var app = AppData.shared
     @State private var editing: Holding?
     @Environment(\.dismiss) private var dismiss
 
+    private var lots: [Holding] { groupHoldings(app.holdings).first { $0.key == groupKey }?.lots ?? [] }
     private var group: HoldingGroup { HoldingGroup(key: groupKey, lots: lots) }
 
     var body: some View {
@@ -156,16 +180,14 @@ private struct HoldingGroupSheet: View {
                     ForEach(lots) { lot in
                         Button { editing = lot } label: { lotRow(lot) }.buttonStyle(.plain)
                             .swipeActions {
-                                Button(role: .destructive) {
-                                    HoldingService.delete(ids: [lot.id]); reload()
-                                } label: { Label("Delete", systemImage: "trash") }
+                                Button(role: .destructive) { app.deleteHoldings(ids: [lot.id]) } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                     }
                     .listRowBackground(Color.white.opacity(0.06))
-                    Button { editing = addLot() } label: {
-                        Label("Add purchase", systemImage: "plus")
-                    }
-                    .listRowBackground(Color.white.opacity(0.06))
+                    Button { editing = addLot() } label: { Label("Add purchase", systemImage: "plus") }
+                        .listRowBackground(Color.white.opacity(0.06))
                 }
             }
             .font(.system(.body, design: .rounded))
@@ -176,13 +198,11 @@ private struct HoldingGroupSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $editing) { h in
-                HoldingEditSheet(holding: h, accounts: accounts) { saved in
-                    HoldingService.save(saved); reload(); editing = nil
-                }
+                HoldingEditSheet(holding: h) { saved in app.saveHolding(saved); editing = nil }
             }
         }
         .preferredColorScheme(.dark).tint(.white)
-        .onAppear { reload() }
+        .onChange(of: lots.count) { _, c in if c == 0 { dismiss() } }
     }
 
     private var header: some View {
@@ -192,7 +212,7 @@ private struct HoldingGroupSheet: View {
                 .font(.system(size: 34, weight: .thin, design: .rounded)).tracking(-1)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
             HStack(spacing: 12) {
-                Text("\(decimal(group.shares)) shares · cost \(formatMoney(group.cost))")
+                Text("\(decimal(group.shares)) \(unitLabel(group.kind)) · cost \(formatMoney(group.cost))")
                     .font(.caption).foregroundStyle(.white.opacity(0.6))
                 Text("\(group.gain >= 0 ? "+" : "")\(formatMoney(group.gain))")
                     .font(.system(.subheadline, design: .rounded)).bold()
@@ -207,7 +227,7 @@ private struct HoldingGroupSheet: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lot.date, format: .dateTime.year().month().day()).foregroundStyle(.white)
-                Text("\(decimal(lot.quantity)) sh @ \(formatMoney(lot.costPerUnit))")
+                Text("\(decimal(lot.quantity)) \(unitLabel(lot.kind)) @ \(formatMoney(lot.costPerUnit))")
                     .font(.caption).foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
@@ -219,40 +239,35 @@ private struct HoldingGroupSheet: View {
         }
     }
 
-    /// A new lot pre-filled with this group's instrument + latest price.
     private func addLot() -> Holding {
         Holding(kind: group.kind, name: group.name, symbol: group.symbol,
                 quantity: 0, costPerUnit: 0, currentPrice: group.currentPrice)
     }
-
-    private func reload() {
-        lots = groupHoldings(HoldingStore.load()).first { $0.key == groupKey }?.lots ?? []
-        onChange()
-        if lots.isEmpty { dismiss() }
-    }
 }
 
-/// Add / edit one holding. Decimal fields use the decimal keypad.
+/// Add / edit one holding. Stocks pick a ticker from a bundled list; gold is in 兩.
 private struct HoldingEditSheet: View {
     @State var holding: Holding
-    let accounts: [Account]
     let onSave: (Holding) -> Void
+    @State private var app = AppData.shared
     @Environment(\.dismiss) private var dismiss
 
-    @State private var qty: String    // count of shares (odd lot) or lots (whole lot)
+    @State private var qty: String    // shares (odd) / lots (whole) / 兩 (gold)
     @State private var cost: String
     @State private var price: String
-    @State private var showSearch = false
+    @State private var showPicker = false
 
-    init(holding: Holding, accounts: [Account], onSave: @escaping (Holding) -> Void) {
+    init(holding: Holding, onSave: @escaping (Holding) -> Void) {
         _holding = State(initialValue: holding)
-        self.accounts = accounts
         self.onSave = onSave
-        let count = holding.wholeLot ? holding.quantity / 1000 : holding.quantity
+        let count = (holding.kind != kindGold && holding.wholeLot) ? holding.quantity / 1000 : holding.quantity
         _qty = State(initialValue: count == 0 ? "" : "\(count)")
         _cost = State(initialValue: holding.costPerUnit == 0 ? "" : "\(holding.costPerUnit)")
         _price = State(initialValue: holding.currentPrice == 0 ? "" : "\(holding.currentPrice)")
     }
+
+    private var isGold: Bool { holding.kind == kindGold }
+    private var isStock: Bool { holding.kind == kindUSStocks || holding.kind == kindTWStocks }
 
     var body: some View {
         NavigationStack {
@@ -263,33 +278,38 @@ private struct HoldingEditSheet: View {
                             Label(k.name, systemImage: k.icon).tag(k.name)
                         }
                     }
-                    Button { showSearch = true } label: {
-                        HStack {
-                            Text("Stock").foregroundStyle(Color.appInk)
-                            Spacer()
-                            Text(holding.symbol.isEmpty ? "Select" : "\(holding.name) · \(holding.symbol)")
-                                .foregroundStyle(.secondary).lineLimit(1)
-                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                    if isStock {
+                        Button { showPicker = true } label: {
+                            HStack {
+                                Text("Stock").foregroundStyle(Color.appInk)
+                                Spacer()
+                                Text(holding.symbol.isEmpty ? "Select" : holding.symbol)
+                                    .foregroundStyle(.secondary).lineLimit(1)
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                     }
+                    TextField("Name (your label)", text: $holding.name)
                 }
                 Section("Position") {
-                    Picker("Lot", selection: $holding.wholeLot) {
-                        Text("Odd lot").tag(false)
-                        Text("Whole lot (×1000)").tag(true)
-                    }.pickerStyle(.segmented)
-                    field(holding.wholeLot ? "Lots" : "Shares", $qty)
-                    field("Cost per share", $cost)
-                    field("Current price", $price)
+                    if isStock {
+                        Picker("Lot", selection: $holding.wholeLot) {
+                            Text("Odd lot").tag(false)
+                            Text("Whole lot (×1000)").tag(true)
+                        }.pickerStyle(.segmented)
+                    }
+                    field(qtyLabel, $qty)
+                    field(isGold ? "Cost per 兩" : "Cost per share", $cost)
+                    field(isGold ? "Price per 兩" : "Current price", $price)
                     DatePicker("Date", selection: $holding.date, displayedComponents: .date)
                 }
                 Section {
                     Picker("Funding account", selection: $holding.accountID) {
                         Text("Unassigned").tag(UUID?.none)
-                        ForEach(accounts) { a in Text(a.name).tag(UUID?.some(a.id)) }
+                        ForEach(app.accounts) { a in Text(a.name).tag(UUID?.some(a.id)) }
                     }
                 } footer: {
-                    Text("Buying this holding records its cost as an investment expense, so it counts as saved (not spent).")
+                    Text("Only buys with a funding account are recorded in the Ledger (and count as saved). Unassigned = Investments only.")
                 }
             }
             .font(.system(.body, design: .rounded))
@@ -302,27 +322,35 @@ private struct HoldingEditSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         let count = Decimal(string: qty) ?? 0
-                        holding.quantity = holding.wholeLot ? count * 1000 : count
+                        holding.quantity = (isStock && holding.wholeLot) ? count * 1000 : count
                         holding.costPerUnit = Decimal(string: cost) ?? 0
                         holding.currentPrice = Decimal(string: price) ?? 0
+                        if isGold { holding.symbol = "" }
                         onSave(holding)
                         dismiss()
                     }
                 }
             }
-            .sheet(isPresented: $showSearch) {
-                StockSearchView(preferTW: holding.kind == "TW Stocks") { match in
-                    holding.symbol = match.symbol
-                    holding.name = match.name
+            .sheet(isPresented: $showPicker) {
+                StockListView(kind: holding.kind) { symbol, name in
+                    holding.symbol = symbol
+                    if holding.name.isEmpty { holding.name = name }
                     Task {
-                        if let p = await QuoteService.price(for: match.symbol) {
-                            price = "\(p)"; holding.currentPrice = p
-                        }
+                        if let p = await QuoteService.price(for: symbol) { price = "\(p)"; holding.currentPrice = p }
                     }
                 }
             }
+            .task { await autofillGoldPrice() }
         }
         .preferredColorScheme(.dark).tint(.white)
+    }
+
+    private var qtyLabel: String { isGold ? "兩 (taels)" : (holding.wholeLot ? "Lots" : "Shares") }
+
+    /// Prefill a live gold price when adding a gold holding with no price yet.
+    private func autofillGoldPrice() async {
+        guard isGold, price.isEmpty, let g = await QuoteService.goldPricePerTael() else { return }
+        price = "\(g)"
     }
 
     private func field(_ title: String, _ text: Binding<String>) -> some View {
@@ -330,59 +358,49 @@ private struct HoldingEditSheet: View {
             Text(title)
             Spacer()
             TextField("0", text: text)
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(maxWidth: 140)
+                .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(maxWidth: 140)
         }
     }
 }
 
-/// Search instruments by name/symbol (Yahoo) and pick one — no manual typing.
-private struct StockSearchView: View {
-    var preferTW = false
-    let onPick: (SymbolMatch) -> Void
+/// Pick a ticker from the bundled list for a kind — locally filterable, no network.
+private struct StockListView: View {
+    let kind: String
+    let onPick: (String, String) -> Void
     @State private var query = ""
-    @State private var results: [SymbolMatch] = []
     @Environment(\.dismiss) private var dismiss
+
+    private var items: [(symbol: String, name: String)] {
+        let all = stockList(for: kind)
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return all }
+        return all.filter { $0.symbol.lowercased().contains(q) || $0.name.lowercased().contains(q) }
+    }
 
     var body: some View {
         NavigationStack {
-            List(results) { m in
-                Button { onPick(m); dismiss() } label: {
+            List(items, id: \.symbol) { item in
+                Button { onPick(item.symbol, item.name); dismiss() } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(m.symbol).foregroundStyle(Color.appInk)
-                            Text(m.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            Text(item.symbol).foregroundStyle(Color.appInk)
+                            Text(item.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                         Spacer()
-                        Text(m.exchange).font(.caption2).foregroundStyle(.secondary)
                     }
                 }
                 .listRowBackground(Color.white.opacity(0.06))
             }
             .font(.system(.body, design: .rounded))
+            .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(GrainientBackground().ignoresSafeArea())
-            .overlay {
-                if results.isEmpty {
-                    ContentUnavailableView("Search a stock", systemImage: "magnifyingglass",
-                        description: Text("Type a name or symbol, e.g. Apple, 2330, BTC."))
-                }
-            }
-            .searchable(text: $query, prompt: "Name or symbol")
-            .navigationTitle("Select")
+            .searchable(text: $query, prompt: "Filter")
+            .navigationTitle("Select stock")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }
         .preferredColorScheme(.dark).tint(.white)
-        .task(id: query) {
-            try? await Task.sleep(nanoseconds: 300_000_000)   // debounce
-            guard !Task.isCancelled else { return }
-            // TW stocks: a bare numeric code like "2330" → search "2330.TW".
-            let raw = query.trimmingCharacters(in: .whitespaces)
-            let q = (preferTW && !raw.isEmpty && raw.allSatisfy(\.isNumber)) ? raw + ".TW" : raw
-            results = await QuoteService.search(q)
-        }
     }
 }
 

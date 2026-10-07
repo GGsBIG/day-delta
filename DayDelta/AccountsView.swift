@@ -7,9 +7,10 @@ import UIKit
 /// chips, and a "This period" card with the balance curve and expense/income
 /// totals. Green theme, one page, no scroll.
 struct AccountsView: View {
-    @State private var txns: [Txn] = TxnStore.load()
-    @State private var accounts: [Account] = AccountStore.load()
-    @State private var categories: [Category] = CategoryStore.load()
+    @State private var app = AppData.shared
+    private var txns: [Txn] { app.txns }
+    private var accounts: [Account] { app.accounts }
+    private var categories: [Category] { app.categories }
 
     /// nil = all accounts (grand total); otherwise the chosen account.
     @State private var selected: UUID? = nil
@@ -90,20 +91,14 @@ struct AccountsView: View {
         .preferredColorScheme(.dark)
         .tint(.white)
         .sheet(isPresented: $showingManage) {
-            NavigationStack { AccountManagerView(accounts: $accounts) }
+            NavigationStack { AccountManagerView(accounts: $app.accounts) }
                 .preferredColorScheme(.dark).tint(.white)
         }
         .sheet(isPresented: $showingColors) {
             ColorSettingsView().presentationDetents([.medium, .large])
         }
         .onChange(of: accounts) { _, new in
-            AccountStore.save(new)
             if let selected, !new.contains(where: { $0.id == selected }) { self.selected = nil }
-        }
-        .onAppear {
-            txns = TxnStore.load()
-            accounts = AccountStore.load()
-            categories = CategoryStore.load()
         }
     }
 

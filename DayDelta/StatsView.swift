@@ -3,8 +3,9 @@ import Charts
 
 /// Stats tab: period + type toggles, donut, breakdown list. Loads its own data.
 struct StatsView: View {
-    @State private var txns: [Txn] = TxnStore.load()
-    @State private var categories: [Category] = CategoryStore.load()
+    @State private var app = AppData.shared
+    private var txns: [Txn] { app.txns }
+    private var categories: [Category] { app.categories }
 
     @State private var period: StatPeriod = .month
     @State private var type: TxnType = .expense
@@ -62,10 +63,6 @@ struct StatsView: View {
         }
         .preferredColorScheme(.dark)
         .tint(.white)
-        .onAppear {
-            txns = TxnStore.load()
-            categories = CategoryStore.load()
-        }
     }
 
     // MARK: Donut

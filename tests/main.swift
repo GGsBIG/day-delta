@@ -204,6 +204,10 @@ assert(groups[0].marketValue == 180000)   // 1500*120
 assert(groups[0].gain == 25000)
 assert(groups[1].symbol == "AAPL" && groups[1].lots.count == 1)
 
+// goldTWDPerTael: USD/oz × USD→TWD, oz→兩 conversion. 2000 × 32 / 31.1035 × 37.5
+let goldTael = goldTWDPerTael(usdPerOz: 2000, usdTwd: 32)
+assert(goldTael > 77000 && goldTael < 78000)   // ≈ 77,161
+
 print("all DayMath tests passed")
 
 print("all money tests passed")

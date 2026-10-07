@@ -18,6 +18,14 @@ enum QuoteService {
         return parseQuotePrice(data)
     }
 
+    /// Live gold price in TWD per 台兩: international gold (GC=F, USD/oz) × USD→TWD.
+    static func goldPricePerTael() async -> Decimal? {
+        async let oz = price(for: "GC=F")
+        async let fx = price(for: "TWD=X")   // USD→TWD
+        guard let usdPerOz = await oz, let usdTwd = await fx else { return nil }
+        return goldTWDPerTael(usdPerOz: usdPerOz, usdTwd: usdTwd)
+    }
+
     /// Search instruments by name or symbol via Yahoo's search endpoint.
     static func search(_ query: String) async -> [SymbolMatch] {
         let q = query.trimmingCharacters(in: .whitespaces)

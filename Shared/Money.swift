@@ -149,45 +149,14 @@ func groupHoldings(_ holdings: [Holding]) -> [HoldingGroup] {
     return order.map { HoldingGroup(key: $0, lots: map[$0] ?? []) }
 }
 
-/// Persists holdings and keeps each one's linked investment-expense txn in sync,
-/// so a purchase's cost counts as saved and shows in the Ledger.
-enum HoldingService {
-    /// Upsert a holding + its linked txn.
-    static func save(_ h: Holding) {
-        var holding = h
-        var txns = TxnStore.load()
-        let cat = ensureInvestmentCategory()
-        if let tid = holding.txnID, let i = txns.firstIndex(where: { $0.id == tid }) {
-            txns[i].amount = holding.cost
-            txns[i].date = holding.date
-            txns[i].note = holding.name
-            txns[i].accountID = holding.accountID
-            txns[i].categoryID = cat.id
-        } else {
-            let t = Txn(type: .expense, amount: holding.cost, categoryID: cat.id,
-                        date: holding.date, note: holding.name, accountID: holding.accountID)
-            holding.txnID = t.id
-            txns.append(t)
-        }
-        TxnStore.save(txns)
+/// Grams per troy ounce and per Taiwan tael — for converting international gold
+/// (USD/oz) to a local TWD-per-兩 price.
+let gramsPerOunce: Decimal = 31.1035
+let gramsPerTael: Decimal = 37.5
 
-        var items = HoldingStore.load()
-        if let i = items.firstIndex(where: { $0.id == holding.id }) { items[i] = holding }
-        else { items.append(holding) }
-        HoldingStore.save(items)
-    }
-
-    /// Remove holdings (by id) + their linked txns.
-    static func delete(ids: [UUID]) {
-        let items = HoldingStore.load()
-        let txnIDs = Set(items.filter { ids.contains($0.id) }.compactMap(\.txnID))
-        if !txnIDs.isEmpty {
-            var txns = TxnStore.load()
-            txns.removeAll { txnIDs.contains($0.id) }
-            TxnStore.save(txns)
-        }
-        HoldingStore.save(items.filter { !ids.contains($0.id) })
-    }
+/// International gold (USD per ounce) × USD→TWD → TWD per 台兩. Pure.
+func goldTWDPerTael(usdPerOz: Decimal, usdTwd: Decimal) -> Decimal {
+    usdPerOz * usdTwd / gramsPerOunce * gramsPerTael
 }
 
 /// Parses Yahoo Finance search JSON (`quotes[]`) into symbol matches. Pure.
@@ -213,16 +182,46 @@ let investmentKinds: [(name: String, colorHex: String, icon: String)] = [
     ("US Stocks", "#4F9DFF", "chart.line.uptrend.xyaxis"),
     ("TW Stocks", "#EF4444", "chart.bar.fill"),
     ("Gold",      "#F59E0B", "circle.hexagongrid.fill"),
-    ("Crypto",    "#A855F7", "bitcoinsign.circle.fill"),
-    ("ETF",       "#22C55E", "chart.pie.fill"),
-    ("Fund",      "#14B8A6", "building.columns.fill"),
-    ("Bond",      "#EC4899", "doc.text.fill"),
-    ("Cash",      "#9CA3AF", "banknote.fill"),
-    ("Other",     "#9CA3AF", "ellipsis.circle.fill"),
 ]
+let kindUSStocks = "US Stocks", kindTWStocks = "TW Stocks", kindGold = "Gold"
 
 func kindColorHex(_ name: String) -> String { investmentKinds.first { $0.name == name }?.colorHex ?? "#9CA3AF" }
 func kindIcon(_ name: String) -> String { investmentKinds.first { $0.name == name }?.icon ?? "ellipsis.circle.fill" }
+
+/// Bundled pick-lists so users choose a ticker instead of searching. (symbol, name).
+let usStocks: [(symbol: String, name: String)] = [
+    ("AAPL","Apple"),("MSFT","Microsoft"),("NVDA","NVIDIA"),("GOOGL","Alphabet"),("AMZN","Amazon"),
+    ("META","Meta Platforms"),("TSLA","Tesla"),("BRK-B","Berkshire Hathaway"),("AVGO","Broadcom"),("JPM","JPMorgan Chase"),
+    ("V","Visa"),("MA","Mastercard"),("UNH","UnitedHealth"),("LLY","Eli Lilly"),("JNJ","Johnson & Johnson"),
+    ("XOM","Exxon Mobil"),("WMT","Walmart"),("PG","Procter & Gamble"),("HD","Home Depot"),("COST","Costco"),
+    ("ORCL","Oracle"),("MRK","Merck"),("ABBV","AbbVie"),("CVX","Chevron"),("PEP","PepsiCo"),
+    ("KO","Coca-Cola"),("ADBE","Adobe"),("CRM","Salesforce"),("BAC","Bank of America"),("AMD","AMD"),
+    ("NFLX","Netflix"),("TMO","Thermo Fisher"),("MCD","McDonald's"),("CSCO","Cisco"),("ACN","Accenture"),
+    ("ABT","Abbott"),("DHR","Danaher"),("INTC","Intel"),("QCOM","Qualcomm"),("TXN","Texas Instruments"),
+    ("DIS","Disney"),("WFC","Wells Fargo"),("VZ","Verizon"),("CMCSA","Comcast"),("PM","Philip Morris"),
+    ("NKE","Nike"),("INTU","Intuit"),("IBM","IBM"),("AMAT","Applied Materials"),("GE","GE Aerospace"),
+    ("CAT","Caterpillar"),("HON","Honeywell"),("UNP","Union Pacific"),("LOW","Lowe's"),("SPGI","S&P Global"),
+    ("BA","Boeing"),("GS","Goldman Sachs"),("MS","Morgan Stanley"),("UBER","Uber"),("NOW","ServiceNow"),
+    ("PLTR","Palantir"),("SBUX","Starbucks"),("PYPL","PayPal"),("T","AT&T"),("BKNG","Booking"),
+    ("SPY","SPDR S&P 500 ETF"),("QQQ","Invesco QQQ"),("VOO","Vanguard S&P 500"),("VTI","Vanguard Total Market"),("SCHD","Schwab Dividend ETF"),
+]
+let twStocks: [(symbol: String, name: String)] = [
+    ("2330.TW","台積電"),("2317.TW","鴻海"),("2454.TW","聯發科"),("2308.TW","台達電"),("2412.TW","中華電"),
+    ("2881.TW","富邦金"),("2882.TW","國泰金"),("2303.TW","聯電"),("1303.TW","南亞"),("1301.TW","台塑"),
+    ("2002.TW","中鋼"),("3008.TW","大立光"),("2886.TW","兆豐金"),("2891.TW","中信金"),("2884.TW","玉山金"),
+    ("2885.TW","元大金"),("2892.TW","第一金"),("2880.TW","華南金"),("2883.TW","開發金"),("2890.TW","永豐金"),
+    ("3045.TW","台灣大"),("4904.TW","遠傳"),("2207.TW","和泰車"),("2379.TW","瑞昱"),("3711.TW","日月光投控"),
+    ("2357.TW","華碩"),("2382.TW","廣達"),("2395.TW","研華"),("2409.TW","友達"),("3034.TW","聯詠"),
+    ("2327.TW","國巨"),("1216.TW","統一"),("1101.TW","台泥"),("2105.TW","正新"),("2912.TW","統一超"),
+    ("5880.TW","合庫金"),("2801.TW","彰銀"),("2823.TW","中壽"),("6505.TW","台塑化"),("3037.TW","欣興"),
+    ("2615.TW","萬海"),("2603.TW","長榮"),("2609.TW","陽明"),("2618.TW","長榮航"),("2610.TW","華航"),
+    ("0050.TW","元大台灣50"),("0056.TW","元大高股息"),("00878.TW","國泰永續高股息"),("006208.TW","富邦台50"),("00929.TW","復華台灣科技優息"),
+]
+
+/// The pick-list for an instrument kind (empty for kinds with no bundled list).
+func stockList(for kind: String) -> [(symbol: String, name: String)] {
+    switch kind { case kindUSStocks: return usStocks; case kindTWStocks: return twStocks; default: return [] }
+}
 
 enum HoldingStore {
     private static let key = "daydelta.holdings"
@@ -312,19 +311,6 @@ enum CategoryStore {
         guard let data = try? JSONEncoder().encode(cats) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
-}
-
-/// The expense category used for investment purchases (so they count as saved,
-/// not spent). Returns the first investment-flagged expense category, creating a
-/// persisted "Investments" one if none exists.
-func ensureInvestmentCategory() -> Category {
-    var cats = CategoryStore.load()
-    if let c = cats.first(where: { $0.type == .expense && $0.isInvestment }) { return c }
-    let c = Category(name: "Investments", type: .expense, icon: "chart.line.uptrend.xyaxis",
-                     colorHex: "#A855F7", isInvestment: true)
-    cats.append(c)
-    CategoryStore.save(cats)
-    return c
 }
 
 // MARK: - Stats
