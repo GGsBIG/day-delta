@@ -72,7 +72,7 @@ struct InvestmentChartCard: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(selected == nil ? "Total value" : "At point").font(.caption).foregroundStyle(.white.opacity(0.6))
             Text(formatMoney(readout))
-                .font(.system(size: 36, weight: .bold, design: .rounded))
+                .font(.system(size: 46, weight: .bold, design: .rounded)).tracking(-1)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (readout as NSDecimalNumber).doubleValue))
                 .animation(.snappy(duration: 0.3), value: readout)
