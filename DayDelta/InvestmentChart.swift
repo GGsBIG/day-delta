@@ -8,6 +8,9 @@ import Charts
 /// Values mix currencies (USD stocks + TWD stocks/gold) like the portfolio total.
 struct InvestmentChartCard: View {
     let holdings: [Holding]
+    var displayUSD = false   // US Stocks filter → show USD; else convert to TWD
+    var fx: Decimal = 32     // USD→TWD
+    var currencyCode = "TWD"
 
     private let days = 90   // fixed 90-day window (no user toggle)
     @AppStorage("accentHex") private var accentHex = "#5227FF"
@@ -15,9 +18,12 @@ struct InvestmentChartCard: View {
     @State private var loading = false
     @State private var selected: Date?
 
+    private func disp(_ mv: Decimal, _ kind: String) -> Decimal {
+        value(mv, kind: kind, displayUSD: displayUSD, fx: fx)
+    }
     /// The one headline total: current market value of all (filtered) holdings.
-    private var total: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
-    private var cost: Decimal { holdings.reduce(0) { $0 + $1.cost } }
+    private var total: Decimal { holdings.reduce(0) { $0 + disp($1.marketValue, $1.kind) } }
+    private var cost: Decimal { holdings.reduce(0) { $0 + disp($1.cost, $1.kind) } }
     private var gain: Decimal { total - cost }
     private var gainPct: Double { changePct(total, cost) }
     private var selectedPoint: PortfolioPoint? {
@@ -32,7 +38,7 @@ struct InvestmentChartCard: View {
             chart.frame(height: 190)
         }
         .padding(.vertical, 8)
-        .task(id: signature) { await reload() }
+        .task(id: "\(signature)|\(displayUSD)|\(fx)") { await reload() }
     }
 
     // MARK: Value block (matches the Accounts "Spend Account" style)
@@ -41,7 +47,7 @@ struct InvestmentChartCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(selected == nil ? "Portfolio value" : "At point")
                 .font(.system(.title3, design: .rounded)).foregroundStyle(.white.opacity(0.7))
-            Text(formatMoney(readout))
+            Text(formatMoney(readout, code: currencyCode))
                 .font(.system(size: 52, weight: .thin, design: .rounded)).tracking(0.5)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (readout as NSDecimalNumber).doubleValue))
@@ -51,7 +57,7 @@ struct InvestmentChartCard: View {
                     .font(.system(.subheadline, design: .rounded)).foregroundStyle(.white.opacity(0.7))
             } else {
                 HStack(spacing: 10) {
-                    Text("\(gain >= 0 ? "+" : "")\(formatMoney(gain))")
+                    Text("\(gain >= 0 ? "+" : "")\(formatMoney(gain, code: currencyCode))")
                         .font(.system(.subheadline, design: .rounded)).bold()
                         .foregroundStyle(gain >= 0 ? .green : .red)
                     Text(String(format: "%+.1f%%", gainPct))
@@ -128,6 +134,13 @@ struct InvestmentChartCard: View {
         }
         if holdings.contains(where: { $0.kind == kindGold }) {
             history["GOLD"] = await QuoteService.goldHistory(days: days)
+        }
+        // In TWD view, scale US-stock histories by fx so the whole curve is in TWD.
+        if !displayUSD {
+            let usSymbols = Set(holdings.filter { $0.kind == kindUSStocks }.map(\.symbol))
+            for s in usSymbols where history[s] != nil {
+                history[s] = history[s]!.map { ($0.date, $0.close * fx) }
+            }
         }
         let cur = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: Date())
         // Animate the curve morph when data changes.

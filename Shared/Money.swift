@@ -172,6 +172,7 @@ func kindIcon(_ name: String) -> String { investmentKinds.first { $0.name == nam
 /// Bundled pick-lists so users choose a ticker instead of searching. (symbol, name).
 let usStocks: [(symbol: String, name: String)] = [
     ("AAPL","Apple"),("MSFT","Microsoft"),("NVDA","NVIDIA"),("GOOGL","Alphabet"),("AMZN","Amazon"),
+    ("TSM","TSMC ADR"),("ASML","ASML"),("BABA","Alibaba"),("NIO","NIO"),("ARM","Arm Holdings"),
     ("META","Meta Platforms"),("TSLA","Tesla"),("BRK-B","Berkshire Hathaway"),("AVGO","Broadcom"),("JPM","JPMorgan Chase"),
     ("V","Visa"),("MA","Mastercard"),("UNH","UnitedHealth"),("LLY","Eli Lilly"),("JNJ","Johnson & Johnson"),
     ("XOM","Exxon Mobil"),("WMT","Walmart"),("PG","Procter & Gamble"),("HD","Home Depot"),("COST","Costco"),
@@ -385,8 +386,24 @@ func categoryTotals(_ txns: [Txn], type: TxnType) -> [(categoryID: UUID, total: 
 
 /// Locale-formatted currency string, e.g. "NT$150.00".
 func formatMoney(_ amount: Decimal) -> String {
-    let code = Locale.current.currency?.identifier ?? "USD"
-    return amount.formatted(.currency(code: code))
+    formatMoney(amount, code: Locale.current.currency?.identifier ?? "USD")
+}
+
+/// Currency string in a specific code (e.g. "USD" → "$", "TWD" → "NT$").
+func formatMoney(_ amount: Decimal, code: String) -> String {
+    amount.formatted(.currency(code: code))
+}
+
+// MARK: - Investment currency
+
+/// US stocks are priced in USD; TW stocks and gold in TWD.
+func holdingCurrency(_ kind: String) -> String { kind == kindUSStocks ? "USD" : "TWD" }
+
+/// A holding's market value in the display currency. In USD view it's as-is (the
+/// filtered set is all US stocks); in TWD view, USD holdings are converted by `fx`.
+func value(_ marketValue: Decimal, kind: String, displayUSD: Bool, fx: Decimal) -> Decimal {
+    if displayUSD { return marketValue }
+    return kind == kindUSStocks ? marketValue * fx : marketValue
 }
 
 // MARK: - Calendar

@@ -8,6 +8,7 @@ struct InvestmentsView: View {
     @State private var viewingGroup: GroupKey?
     @State private var filter: String? = nil      // nil = All; else a kind name
     @State private var refreshing = false
+    @State private var fx: Decimal = 32            // live USD→TWD rate (fallback)
     @AppStorage("accentHex") private var accentHex = "#5227FF"
 
     private struct GroupKey: Identifiable { let id: String }
@@ -17,7 +18,14 @@ struct InvestmentsView: View {
     }
     private var groups: [HoldingGroup] { groupHoldings(holdings) }
 
-    private var totalValue: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
+    /// Show USD only when viewing US Stocks; otherwise convert everything to TWD.
+    private var displayUSD: Bool { filter == kindUSStocks }
+    private var currencyCode: String { displayUSD ? "USD" : "TWD" }
+    private func disp(_ marketValue: Decimal, _ kind: String) -> Decimal {
+        value(marketValue, kind: kind, displayUSD: displayUSD, fx: fx)
+    }
+
+    private var totalValue: Decimal { holdings.reduce(0) { $0 + disp($1.marketValue, $1.kind) } }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,7 +47,8 @@ struct InvestmentsView: View {
             } else {
                 // Chart lives above the List (not inside a row) so Charts gets a real
                 // width — avoids the "Invalid frame dimension" layout churn.
-                InvestmentChartCard(holdings: holdings).padding(.horizontal)
+                InvestmentChartCard(holdings: holdings, displayUSD: displayUSD, fx: fx,
+                                    currencyCode: currencyCode).padding(.horizontal)
                 List {
                     Section("Holdings") {
                         ForEach(groups) { g in
@@ -94,8 +103,10 @@ struct InvestmentsView: View {
         }
     }
 
-    /// Pull live prices once per unique symbol (+ gold via its own endpoint).
+    /// Pull live prices once per unique symbol (+ gold via its own endpoint), and
+    /// the USD→TWD rate for currency conversion.
     private func refreshQuotes() async {
+        if let r = await QuoteService.price(for: "TWD=X") { fx = r }
         let hasGold = app.holdings.contains { $0.kind == kindGold }
         let symbols = Set(app.holdings.filter { $0.kind != kindGold }.map(\.symbol).filter { !$0.isEmpty })
         guard hasGold || !symbols.isEmpty else { return }
@@ -126,11 +137,12 @@ struct InvestmentsView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(formatMoney(g.marketValue)).foregroundStyle(.white).lineLimit(1)
-                    .contentTransition(.numericText(value: (g.marketValue as NSDecimalNumber).doubleValue))
-                Text("\(g.gain >= 0 ? "+" : "")\(formatMoney(g.gain))")
-                    .font(.caption).foregroundStyle(g.gain >= 0 ? .green : .red).lineLimit(1)
-                    .contentTransition(.numericText(value: (g.gain as NSDecimalNumber).doubleValue))
+                let mv = disp(g.marketValue, g.kind), gn = disp(g.gain, g.kind)
+                Text(formatMoney(mv, code: currencyCode)).foregroundStyle(.white).lineLimit(1)
+                    .contentTransition(.numericText(value: (mv as NSDecimalNumber).doubleValue))
+                Text("\(gn >= 0 ? "+" : "")\(formatMoney(gn, code: currencyCode))")
+                    .font(.caption).foregroundStyle(gn >= 0 ? .green : .red).lineLimit(1)
+                    .contentTransition(.numericText(value: (gn as NSDecimalNumber).doubleValue))
             }
             .fixedSize(horizontal: true, vertical: false)
         }
