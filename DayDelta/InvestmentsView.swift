@@ -40,8 +40,10 @@ struct InvestmentsView: View {
                     description: Text("Tap + to add a holding."))
                     .frame(maxHeight: .infinity)
             } else {
+                // Chart lives above the List (not inside a row) so Charts gets a real
+                // width — avoids the "Invalid frame dimension" layout churn.
+                InvestmentChartCard(holdings: holdings).padding(.horizontal)
                 List {
-                    Section { InvestmentChartCard(holdings: holdings).listRowBackground(Color.clear) }
                     Section("Holdings") {
                         ForEach(groups) { g in
                             Button { viewingGroup = GroupKey(id: g.key) } label: { groupRow(g) }.buttonStyle(.plain)
