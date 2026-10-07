@@ -18,7 +18,6 @@ struct InvestmentChartCard: View {
     @AppStorage("accentHex") private var accentHex = "#5227FF"
     @State private var period: ChartPeriod = .days30
     @State private var thisSeries: [PortfolioPoint] = []
-    @State private var prevSeries: [PortfolioPoint] = []   // dates shifted to overlay
     @State private var loading = false
     @State private var selected: Date?
 
@@ -27,8 +26,6 @@ struct InvestmentChartCard: View {
     private var cost: Decimal { holdings.reduce(0) { $0 + $1.cost } }
     private var gain: Decimal { total - cost }
     private var gainPct: Double { changePct(total, cost) }
-    private var prevTotal: Decimal { prevSeries.last?.value ?? 0 }
-    private var pct: Double { changePct(total, prevTotal) }
     private var selectedPoint: PortfolioPoint? {
         guard let selected else { return nil }
         return thisSeries.min { abs($0.date.timeIntervalSince(selected)) < abs($1.date.timeIntervalSince(selected)) }
@@ -40,7 +37,6 @@ struct InvestmentChartCard: View {
             valueBlock
             periodRow
             chart.frame(height: 190)
-            legend
         }
         .padding(.vertical, 8)
         .task(id: "\(period.rawValue)|\(signature)") { await reload() }
@@ -69,8 +65,6 @@ struct InvestmentChartCard: View {
                         .font(.system(.caption, design: .rounded)).bold().foregroundStyle(.white)
                         .padding(.vertical, 4).padding(.horizontal, 10)
                         .background(Capsule().fill(accentGradient(accentHex)))
-                    Text(String(format: "· vs prev %dd %+.1f%%", period.rawValue, pct))
-                        .font(.caption).foregroundStyle(.white.opacity(0.5))
                 }
             }
         }
@@ -93,24 +87,6 @@ struct InvestmentChartCard: View {
         .padding(3).background(Capsule().fill(.white.opacity(0.06)))
     }
 
-    private var legend: some View {
-        HStack(spacing: 16) {
-            label("This period", dashed: false)
-            label("Previous period", dashed: true)
-            Spacer()
-            if loading { ProgressView().controlSize(.small) }
-        }
-    }
-
-    private func label(_ text: String, dashed: Bool) -> some View {
-        HStack(spacing: 6) {
-            Line(dashed: dashed).stroke(.white.opacity(dashed ? 0.5 : 1),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: dashed ? [3, 3] : []))
-                .frame(width: 20, height: 2)
-            Text(text).font(.caption).foregroundStyle(.white.opacity(0.7))
-        }
-    }
-
     // MARK: Chart
 
     private var chart: some View {
@@ -121,14 +97,8 @@ struct InvestmentChartCard: View {
                     .foregroundStyle(LinearGradient(colors: [.white.opacity(0.18), .white.opacity(0.01)],
                                                     startPoint: .top, endPoint: .bottom))
             }
-            ForEach(prevSeries) { p in
-                LineMark(x: .value("Date", p.date), y: .value("Value", p.doubleValue), series: .value("S", "prev"))
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(.white.opacity(0.45))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [4, 4]))
-            }
             ForEach(thisSeries) { p in
-                LineMark(x: .value("Date", p.date), y: .value("Value", p.doubleValue), series: .value("S", "this"))
+                LineMark(x: .value("Date", p.date), y: .value("Value", p.doubleValue))
                     .interpolationMethod(.monotone)
                     .foregroundStyle(.white)
                     .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
@@ -152,6 +122,9 @@ struct InvestmentChartCard: View {
                 AxisValueLabel(format: .dateTime.month(.abbreviated).day()).foregroundStyle(.white.opacity(0.5))
             }
         }
+        .overlay(alignment: .topTrailing) {
+            if loading { ProgressView().controlSize(.small).padding(6) }
+        }
         .overlay {
             if thisSeries.isEmpty && !loading {
                 ContentUnavailableView("No history", systemImage: "chart.xyaxis.line",
@@ -169,11 +142,10 @@ struct InvestmentChartCard: View {
 
     private func reload() async {
         selected = nil
-        guard !holdings.isEmpty else { thisSeries = []; prevSeries = []; return }
+        guard !holdings.isEmpty else { thisSeries = []; return }
         loading = true
         defer { loading = false }
         let days = period.rawValue
-        let cal = Calendar.current
         var history: [String: [(date: Date, close: Decimal)]] = [:]
         for s in Set(holdings.filter { $0.kind != kindGold && !$0.symbol.isEmpty }.map(\.symbol)) {
             history[s] = await QuoteService.history(for: s, days: days)
@@ -181,24 +153,8 @@ struct InvestmentChartCard: View {
         if holdings.contains(where: { $0.kind == kindGold }) {
             history["GOLD"] = await QuoteService.goldHistory(days: days)
         }
-        let now = Date()
-        let cur = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: now)
-        let prevEnd = cal.date(byAdding: .day, value: -days, to: now) ?? now
-        let prevRaw = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: prevEnd)
-        // Shift previous window forward so it overlays the current x-range.
-        let prevShift = prevRaw.map { PortfolioPoint(date: cal.date(byAdding: .day, value: days, to: $0.date) ?? $0.date, value: $0.value) }
+        let cur = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: Date())
         // Animate the curve morph when the period changes.
-        withAnimation(.easeInOut(duration: 0.5)) {
-            thisSeries = cur
-            prevSeries = prevShift
-        }
-    }
-}
-
-/// A short horizontal line shape for the legend swatch.
-private struct Line: Shape {
-    var dashed: Bool
-    func path(in rect: CGRect) -> Path {
-        var p = Path(); p.move(to: CGPoint(x: 0, y: rect.midY)); p.addLine(to: CGPoint(x: rect.maxX, y: rect.midY)); return p
+        withAnimation(.easeInOut(duration: 0.5)) { thisSeries = cur }
     }
 }

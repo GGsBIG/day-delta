@@ -119,20 +119,21 @@ struct InvestmentsView: View {
                 .foregroundStyle(Color(hex: kindColorHex(g.kind))).frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
                 Text(g.name.isEmpty ? g.kind : g.name).foregroundStyle(.white)
-                Text("\(decimal(g.shares)) \(unitLabel(g.kind))"
-                     + (g.lots.count > 1 ? " · \(g.lots.count) buys" : ""))
-                    .font(.caption).foregroundStyle(.white.opacity(0.6))
+                    .lineLimit(1).truncationMode(.tail)
+                Text("\(decimal(g.shares)) \(unitLabel(g.kind))")
+                    .font(.caption).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .trailing, spacing: 2) {
-                Text(formatMoney(g.marketValue)).foregroundStyle(.white)
+                Text(formatMoney(g.marketValue)).foregroundStyle(.white).lineLimit(1)
                     .contentTransition(.numericText(value: (g.marketValue as NSDecimalNumber).doubleValue))
                 Text("\(g.gain >= 0 ? "+" : "")\(formatMoney(g.gain))")
-                    .font(.caption).foregroundStyle(g.gain >= 0 ? .green : .red)
+                    .font(.caption).foregroundStyle(g.gain >= 0 ? .green : .red).lineLimit(1)
                     .contentTransition(.numericText(value: (g.gain as NSDecimalNumber).doubleValue))
             }
-            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
+            .fixedSize(horizontal: true, vertical: false)
         }
+        .frame(height: 44)   // every row the same size; long names truncate with …
         .font(.system(.body, design: .rounded))
     }
 }
