@@ -56,6 +56,7 @@ struct InvestmentsView: View {
                 }
                 .listStyle(.plain)   // full-width rows aligned to the 16pt page insets
                 .scrollContentBackground(.hidden)
+                .contentMargins(.top, 8, for: .scrollContent)   // match other spacing
                 .refreshable { await refreshQuotes() }
             }
         }
