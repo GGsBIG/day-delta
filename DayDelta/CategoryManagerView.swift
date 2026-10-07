@@ -123,10 +123,11 @@ struct CategoryManagerView: View {
         }
     }
 
-    /// Only non-builtin categories delete; builtins silently skip.
+    /// Delete exactly the swiped rows. (Must match the rows SwiftUI removed, or the
+    /// List data/animation desync and the app crashes — so no built-in filtering.)
     private func delete(type: TxnType, offsets: IndexSet) {
         let inType = categories.filter { $0.type == type }
-        let ids = offsets.map { inType[$0] }.filter { !$0.builtin }.map { $0.id }
+        let ids = offsets.map { inType[$0].id }
         categories.removeAll { ids.contains($0.id) }
     }
 }

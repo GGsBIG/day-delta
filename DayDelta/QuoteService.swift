@@ -26,17 +26,4 @@ enum QuoteService {
         return goldTWDPerTael(usdPerOz: usdPerOz, usdTwd: usdTwd)
     }
 
-    /// Search instruments by name or symbol via Yahoo's search endpoint.
-    static func search(_ query: String) async -> [SymbolMatch] {
-        let q = query.trimmingCharacters(in: .whitespaces)
-        guard q.count >= 1,
-              let encoded = q.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: "https://query1.finance.yahoo.com/v1/finance/search?q=\(encoded)&quotesCount=25&newsCount=0")
-        else { return [] }
-        var req = URLRequest(url: url)
-        req.setValue("Mozilla/5.0", forHTTPHeaderField: "User-Agent")
-        req.timeoutInterval = 10
-        guard let (data, _) = try? await URLSession.shared.data(for: req) else { return [] }
-        return parseSymbolSearch(data)
-    }
 }

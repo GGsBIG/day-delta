@@ -67,6 +67,8 @@ struct InvestmentsView: View {
             }
         }
         .preferredColorScheme(.dark).tint(.white)
+        .animation(.snappy(duration: 0.4), value: totalValue)
+        .animation(.snappy(duration: 0.4), value: filter)
         .sheet(item: $editing) { h in
             HoldingEditSheet(holding: h) { saved in app.saveHolding(saved); editing = nil }
         }
@@ -124,11 +126,14 @@ struct InvestmentsView: View {
             Text(formatMoney(totalValue))
                 .font(.system(size: 40, weight: .thin, design: .rounded)).tracking(-1)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
+                .contentTransition(.numericText(value: (totalValue as NSDecimalNumber).doubleValue))
             HStack(spacing: 12) {
                 Text("Cost \(formatMoney(totalCost))").font(.caption).foregroundStyle(.white.opacity(0.6))
+                    .contentTransition(.numericText(value: (totalCost as NSDecimalNumber).doubleValue))
                 Text("\(totalGain >= 0 ? "+" : "")\(formatMoney(totalGain)) (\(String(format: "%+.1f%%", gainPct)))")
                     .font(.system(.subheadline, design: .rounded)).bold()
                     .foregroundStyle(totalGain >= 0 ? .green : .red)
+                    .contentTransition(.numericText(value: (totalGain as NSDecimalNumber).doubleValue))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -150,8 +155,10 @@ struct InvestmentsView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(formatMoney(g.marketValue)).foregroundStyle(.white)
+                    .contentTransition(.numericText(value: (g.marketValue as NSDecimalNumber).doubleValue))
                 Text("\(g.gain >= 0 ? "+" : "")\(formatMoney(g.gain))")
                     .font(.caption).foregroundStyle(g.gain >= 0 ? .green : .red)
+                    .contentTransition(.numericText(value: (g.gain as NSDecimalNumber).doubleValue))
             }
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.white.opacity(0.4))
         }
@@ -211,16 +218,19 @@ private struct HoldingGroupSheet: View {
             Text(formatMoney(group.marketValue))
                 .font(.system(size: 34, weight: .thin, design: .rounded)).tracking(-1)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
+                .contentTransition(.numericText(value: (group.marketValue as NSDecimalNumber).doubleValue))
             HStack(spacing: 12) {
                 Text("\(decimal(group.shares)) \(unitLabel(group.kind)) · cost \(formatMoney(group.cost))")
                     .font(.caption).foregroundStyle(.white.opacity(0.6))
                 Text("\(group.gain >= 0 ? "+" : "")\(formatMoney(group.gain))")
                     .font(.system(.subheadline, design: .rounded)).bold()
                     .foregroundStyle(group.gain >= 0 ? .green : .red)
+                    .contentTransition(.numericText(value: (group.gain as NSDecimalNumber).doubleValue))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 8)
+        .animation(.snappy(duration: 0.4), value: group.marketValue)
     }
 
     private func lotRow(_ lot: Holding) -> some View {

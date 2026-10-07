@@ -113,14 +113,6 @@ struct Holding: Codable, Identifiable, Hashable {
     var wholeLot: Bool = false // bought in whole lots (×1000 shares) vs odd lots
 }
 
-/// One result from a symbol search (Yahoo). `name` is the company/instrument name.
-struct SymbolMatch: Identifiable, Hashable {
-    let symbol: String
-    let name: String
-    let exchange: String
-    var id: String { symbol }
-}
-
 /// Same-symbol purchases merged for display. Totals sum the individual lots.
 struct HoldingGroup: Identifiable {
     let key: String
@@ -157,17 +149,6 @@ let gramsPerTael: Decimal = 37.5
 /// International gold (USD per ounce) × USD→TWD → TWD per 台兩. Pure.
 func goldTWDPerTael(usdPerOz: Decimal, usdTwd: Decimal) -> Decimal {
     usdPerOz * usdTwd / gramsPerOunce * gramsPerTael
-}
-
-/// Parses Yahoo Finance search JSON (`quotes[]`) into symbol matches. Pure.
-func parseSymbolSearch(_ data: Data) -> [SymbolMatch] {
-    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let quotes = root["quotes"] as? [[String: Any]] else { return [] }
-    return quotes.compactMap { q in
-        guard let symbol = q["symbol"] as? String, !symbol.isEmpty else { return nil }
-        let name = (q["shortname"] as? String) ?? (q["longname"] as? String) ?? symbol
-        return SymbolMatch(symbol: symbol, name: name, exchange: (q["exchange"] as? String) ?? "")
-    }
 }
 
 extension Holding {

@@ -183,14 +183,6 @@ assert(parseQuotePrice(Data(quoteJSON.utf8)) == Decimal(123.45))
 assert(parseQuotePrice(Data(#"{"chart":{"result":[]}}"#.utf8)) == nil)
 assert(parseQuotePrice(Data("garbage".utf8)) == nil)
 
-// parseSymbolSearch: pull symbol/name out of Yahoo search JSON
-let searchJSON = #"{"quotes":[{"symbol":"AAPL","shortname":"Apple Inc.","exchange":"NMS"},{"symbol":"2330.TW","longname":"Taiwan Semiconductor","exchange":"TAI"}]}"#
-let matches = parseSymbolSearch(Data(searchJSON.utf8))
-assert(matches.count == 2)
-assert(matches[0].symbol == "AAPL" && matches[0].name == "Apple Inc.")
-assert(matches[1].symbol == "2330.TW" && matches[1].name == "Taiwan Semiconductor")
-assert(parseSymbolSearch(Data("garbage".utf8)).isEmpty)
-
 // groupHoldings: same symbol merges and sums; different symbols stay separate
 let lot1 = Holding(kind: "ETF", name: "0050", symbol: "0050.TW", quantity: 1000, costPerUnit: 100, currentPrice: 120)
 let lot2 = Holding(kind: "ETF", name: "0050", symbol: "0050.TW", quantity: 500, costPerUnit: 110, currentPrice: 120)
