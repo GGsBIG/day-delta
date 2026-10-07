@@ -5,7 +5,15 @@ import Foundation
 /// only the widget's data would be empty).
 enum AppGroup {
     static let id = "group.com.tcsxft.daydelta"
-    static let defaults = UserDefaults(suiteName: id) ?? .standard
+    /// The shared suite — but only when the App Group is actually entitled (the
+    /// container URL is non-nil). Otherwise `.standard`, so there's no CFPrefs
+    /// spam and the app works normally (the widget just won't share data until the
+    /// App Group capability is enabled on both targets).
+    static let defaults: UserDefaults = {
+        guard FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id) != nil,
+              let suite = UserDefaults(suiteName: id) else { return .standard }
+        return suite
+    }()
 
     /// One-time copy of any pre-existing `.standard` values into the shared suite,
     /// so upgrading users keep their data when the stores move to the app group.

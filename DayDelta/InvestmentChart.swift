@@ -35,10 +35,30 @@ struct InvestmentChartCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             valueBlock
-            chart.frame(height: 190)
+            // Only draw the Chart with real data — an empty series gives Charts a
+            // degenerate domain and floods "Invalid frame dimension" warnings.
+            Group {
+                if thisSeries.isEmpty {
+                    placeholder
+                } else {
+                    chart
+                }
+            }
+            .frame(height: 190)
         }
         .padding(.vertical, 8)
         .task(id: "\(signature)|\(displayUSD)|\(fx)") { await reload() }
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            if loading { ProgressView() }
+            else {
+                ContentUnavailableView("No history", systemImage: "chart.xyaxis.line",
+                    description: Text("Add holdings with a symbol to see the curve."))
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: Value block (matches the Accounts "Spend Account" style)
@@ -107,12 +127,6 @@ struct InvestmentChartCard: View {
         }
         .overlay(alignment: .topTrailing) {
             if loading { ProgressView().controlSize(.small).padding(6) }
-        }
-        .overlay {
-            if thisSeries.isEmpty && !loading {
-                ContentUnavailableView("No history", systemImage: "chart.xyaxis.line",
-                    description: Text("Add holdings with a symbol to see the curve."))
-            }
         }
     }
 
