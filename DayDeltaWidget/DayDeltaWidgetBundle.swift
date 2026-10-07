@@ -5,5 +5,7 @@ import SwiftUI
 struct DayDeltaWidgetBundle: WidgetBundle {
     var body: some Widget {
         DayDeltaWidget()
+        PortfolioWidget()
+        BalanceWidget()
     }
 }

@@ -1,5 +1,28 @@
 import Foundation
 
+/// Shared storage so the app and the Home-Screen widget read the same data.
+/// Falls back to `.standard` if the app group isn't provisioned (app still works;
+/// only the widget's data would be empty).
+enum AppGroup {
+    static let id = "group.com.tcsxft.daydelta"
+    static let defaults = UserDefaults(suiteName: id) ?? .standard
+
+    /// One-time copy of any pre-existing `.standard` values into the shared suite,
+    /// so upgrading users keep their data when the stores move to the app group.
+    static func migrateOnce() {
+        let std = UserDefaults.standard
+        let flag = "migratedToAppGroup"
+        guard defaults !== std, !defaults.bool(forKey: flag) else { return }
+        for key in ["daydelta.events", "daydelta.txns", "daydelta.categories",
+                    "daydelta.accounts", "daydelta.holdings"] {
+            if defaults.data(forKey: key) == nil, let old = std.data(forKey: key) {
+                defaults.set(old, forKey: key)
+            }
+        }
+        defaults.set(true, forKey: flag)
+    }
+}
+
 enum TxnType: String, Codable, CaseIterable {
     case expense
     case income
@@ -77,7 +100,7 @@ enum AccountStore {
 
     static func load() -> [Account] {
         if let cache { return cache }
-        if let data = UserDefaults.standard.data(forKey: key),
+        if let data = AppGroup.defaults.data(forKey: key),
            let accs = try? JSONDecoder().decode([Account].self, from: data),
            !accs.isEmpty {
             cache = accs
@@ -90,7 +113,7 @@ enum AccountStore {
     static func save(_ accs: [Account]) {
         cache = accs
         guard let data = try? JSONEncoder().encode(accs) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        AppGroup.defaults.set(data, forKey: key)
     }
 }
 
@@ -213,7 +236,7 @@ enum HoldingStore {
 
     static func load() -> [Holding] {
         if let cache { return cache }
-        let items = (UserDefaults.standard.data(forKey: key))
+        let items = (AppGroup.defaults.data(forKey: key))
             .flatMap { try? JSONDecoder().decode([Holding].self, from: $0) } ?? []
         cache = items
         return items
@@ -222,7 +245,7 @@ enum HoldingStore {
     static func save(_ items: [Holding]) {
         cache = items
         guard let data = try? JSONEncoder().encode(items) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        AppGroup.defaults.set(data, forKey: key)
     }
 }
 
@@ -294,7 +317,7 @@ enum TxnStore {
 
     static func load() -> [Txn] {
         if let cache { return cache }
-        let txns = (UserDefaults.standard.data(forKey: key))
+        let txns = (AppGroup.defaults.data(forKey: key))
             .flatMap { try? JSONDecoder().decode([Txn].self, from: $0) } ?? []
         cache = txns
         return txns
@@ -303,7 +326,7 @@ enum TxnStore {
     static func save(_ txns: [Txn]) {
         cache = txns
         guard let data = try? JSONEncoder().encode(txns) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        AppGroup.defaults.set(data, forKey: key)
     }
 }
 
@@ -328,7 +351,7 @@ enum CategoryStore {
     /// Returns stored categories, seeding the built-ins on first run.
     static func load() -> [Category] {
         if let cache { return cache }
-        if let data = UserDefaults.standard.data(forKey: key),
+        if let data = AppGroup.defaults.data(forKey: key),
            let cats = try? JSONDecoder().decode([Category].self, from: data),
            !cats.isEmpty {
             let migrated = migrateCategoryNames(cats)
@@ -343,7 +366,7 @@ enum CategoryStore {
     static func save(_ cats: [Category]) {
         cache = cats
         guard let data = try? JSONEncoder().encode(cats) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+        AppGroup.defaults.set(data, forKey: key)
     }
 }
 

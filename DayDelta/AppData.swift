@@ -1,17 +1,20 @@
 import Foundation
 import Observation
+import WidgetKit
 
 /// Single source of truth for the money data, shared across the always-alive
 /// paged tabs. Views read these arrays and mutate through here; `@Observable`
 /// makes every page update live (no more "reopen the app to see the new total").
-/// Each array auto-persists via `didSet`.
+/// Each array auto-persists via `didSet` and refreshes the Home-Screen widgets.
 @Observable final class AppData {
     static let shared = AppData()
 
-    var txns: [Txn] { didSet { TxnStore.save(txns) } }
-    var accounts: [Account] { didSet { AccountStore.save(accounts) } }
+    var txns: [Txn] { didSet { TxnStore.save(txns); reloadWidgets() } }
+    var accounts: [Account] { didSet { AccountStore.save(accounts); reloadWidgets() } }
     var categories: [Category] { didSet { CategoryStore.save(categories) } }
-    var holdings: [Holding] { didSet { HoldingStore.save(holdings) } }
+    var holdings: [Holding] { didSet { HoldingStore.save(holdings); reloadWidgets() } }
+
+    private func reloadWidgets() { WidgetCenter.shared.reloadAllTimelines() }
 
     private init() {
         txns = TxnStore.load()
