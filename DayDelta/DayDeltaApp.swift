@@ -18,7 +18,6 @@ private struct RootView: View {
     /// Fractional page position (0…3). Both the content swipe and the tab-bar
     /// drag drive this continuously, so pages follow the finger in real time.
     @State private var progress: CGFloat = 0
-    @State private var dragAnchor: CGFloat? = nil
     @State private var barWidth: CGFloat = 0
     @State private var requestAddTxn = false
     @Namespace private var tabNS
@@ -59,20 +58,8 @@ private struct RootView: View {
             }
             .frame(width: w * 5, alignment: .leading)
             .offset(x: -progress * w)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 10)
-                    .onChanged { v in
-                        guard abs(v.translation.width) > abs(v.translation.height) else { return }
-                        if dragAnchor == nil { dragAnchor = progress }
-                        progress = clampPage((dragAnchor ?? progress) - v.translation.width / w)
-                    }
-                    .onEnded { v in
-                        let base = dragAnchor ?? progress
-                        dragAnchor = nil
-                        let predicted = base - v.predictedEndTranslation.width / w
-                        withAnimation(.snappy(duration: 0.35)) { progress = clampPage(predicted.rounded()) }
-                    }
-            )
+            // Pages switch only via the tab bar (tap or drag) — no content swipe,
+            // so horizontal gestures inside a page (e.g. chart scrubbing) are free.
         }
     }
 

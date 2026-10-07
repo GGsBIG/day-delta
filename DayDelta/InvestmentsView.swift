@@ -17,13 +17,6 @@ struct InvestmentsView: View {
     private var groups: [HoldingGroup] { groupHoldings(holdings) }
 
     private var totalValue: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
-    private var totalCost: Decimal { holdings.reduce(0) { $0 + $1.cost } }
-    private var totalGain: Decimal { totalValue - totalCost }
-    private var gainPct: Double {
-        let c = (totalCost as NSDecimalNumber).doubleValue
-        guard c > 0 else { return 0 }
-        return (totalGain as NSDecimalNumber).doubleValue / c * 100
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -49,7 +42,6 @@ struct InvestmentsView: View {
             } else {
                 List {
                     Section { InvestmentChartCard(holdings: holdings).listRowBackground(Color.clear) }
-                    Section { summary.listRowBackground(Color.clear) }
                     Section("Holdings") {
                         ForEach(groups) { g in
                             Button { viewingGroup = GroupKey(id: g.key) } label: { groupRow(g) }.buttonStyle(.plain)
@@ -117,28 +109,6 @@ struct InvestmentsView: View {
             else if let p = prices[next[i].symbol] { next[i].currentPrice = p }
         }
         app.holdings = next
-    }
-
-    // MARK: Summary
-
-    private var summary: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Portfolio value").font(.caption).foregroundStyle(.white.opacity(0.6))
-            Text(formatMoney(totalValue))
-                .font(.system(size: 40, weight: .thin, design: .rounded)).tracking(-1)
-                .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
-                .contentTransition(.numericText(value: (totalValue as NSDecimalNumber).doubleValue))
-            HStack(spacing: 12) {
-                Text("Cost \(formatMoney(totalCost))").font(.caption).foregroundStyle(.white.opacity(0.6))
-                    .contentTransition(.numericText(value: (totalCost as NSDecimalNumber).doubleValue))
-                Text("\(totalGain >= 0 ? "+" : "")\(formatMoney(totalGain)) (\(String(format: "%+.1f%%", gainPct)))")
-                    .font(.system(.subheadline, design: .rounded)).bold()
-                    .foregroundStyle(totalGain >= 0 ? .green : .red)
-                    .contentTransition(.numericText(value: (totalGain as NSDecimalNumber).doubleValue))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
     }
 
     // MARK: Group row

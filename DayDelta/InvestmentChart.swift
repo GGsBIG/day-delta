@@ -21,7 +21,11 @@ struct InvestmentChartCard: View {
     @State private var loading = false
     @State private var selected: Date?
 
-    private var total: Decimal { thisSeries.last?.value ?? holdings.reduce(0) { $0 + $1.marketValue } }
+    /// The one headline total: current market value of all (filtered) holdings.
+    private var total: Decimal { holdings.reduce(0) { $0 + $1.marketValue } }
+    private var cost: Decimal { holdings.reduce(0) { $0 + $1.cost } }
+    private var gain: Decimal { total - cost }
+    private var gainPct: Double { changePct(total, cost) }
     private var prevTotal: Decimal { prevSeries.last?.value ?? 0 }
     private var pct: Double { changePct(total, prevTotal) }
     private var selectedPoint: PortfolioPoint? {
@@ -75,9 +79,13 @@ struct InvestmentChartCard: View {
                 Text(p.date, format: .dateTime.year().month().day())
                     .font(.system(.subheadline, design: .rounded)).foregroundStyle(.white.opacity(0.7))
             } else {
-                Text(String(format: "%+.1f%% vs previous %d days", pct, period.rawValue))
-                    .font(.system(.subheadline, design: .rounded)).bold()
-                    .foregroundStyle(pct >= 0 ? .green : .red)
+                HStack(spacing: 10) {
+                    Text("\(gain >= 0 ? "+" : "")\(formatMoney(gain)) (\(String(format: "%+.1f%%", gainPct)))")
+                        .font(.system(.subheadline, design: .rounded)).bold()
+                        .foregroundStyle(gain >= 0 ? .green : .red)
+                    Text(String(format: "· %+.1f%% vs prev %dd", pct, period.rawValue))
+                        .font(.caption).foregroundStyle(.white.opacity(0.55))
+                }
             }
         }
     }
