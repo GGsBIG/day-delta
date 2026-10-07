@@ -70,8 +70,8 @@ struct InvestmentsView: View {
             }
         }
         .preferredColorScheme(.dark).tint(.white)
-        .animation(.snappy(duration: 0.4), value: totalValue)
-        .animation(.snappy(duration: 0.4), value: filter)
+        .animation(Motion.smooth, value: totalValue)
+        .animation(Motion.smooth, value: filter)
         .sheet(item: $editing) { h in
             HoldingEditSheet(holding: h) { saved in app.saveHolding(saved); editing = nil }
         }
@@ -232,7 +232,7 @@ private struct HoldingGroupSheet: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 8)
-        .animation(.snappy(duration: 0.4), value: group.marketValue)
+        .animation(Motion.smooth, value: group.marketValue)
     }
 
     private func lotRow(_ lot: Holding) -> some View {

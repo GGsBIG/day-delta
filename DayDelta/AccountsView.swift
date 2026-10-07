@@ -84,9 +84,9 @@ struct AccountsView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .animation(.snappy(duration: 0.45), value: balance)
-            .animation(.snappy(duration: 0.45), value: period)
-            .animation(.snappy(duration: 0.45), value: selected)
+            .animation(Motion.smooth, value: balance)
+            .animation(Motion.smooth, value: period)
+            .animation(Motion.smooth, value: selected)
         }
         .preferredColorScheme(.dark)
         .tint(.white)

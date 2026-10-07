@@ -51,7 +51,7 @@ struct InvestmentChartCard: View {
                 .font(.system(size: 52, weight: .thin, design: .rounded)).tracking(0.5)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (readout as NSDecimalNumber).doubleValue))
-                .animation(.snappy(duration: 0.3), value: readout)
+                .animation(Motion.quick, value: readout)
             if let p = selectedPoint {
                 Text(p.date, format: .dateTime.year().month().day())
                     .font(.system(.subheadline, design: .rounded)).foregroundStyle(.white.opacity(0.7))
@@ -144,6 +144,6 @@ struct InvestmentChartCard: View {
         }
         let cur = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: Date())
         // Animate the curve morph when data changes.
-        withAnimation(.easeInOut(duration: 0.5)) { thisSeries = cur }
+        withAnimation(Motion.smooth) { thisSeries = cur }
     }
 }

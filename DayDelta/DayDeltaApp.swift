@@ -111,7 +111,7 @@ private struct RootView: View {
                 progress = clampPage(v.location.x / (barWidth / 5) - 0.5)
             }
             .onEnded { _ in
-                withAnimation(.snappy(duration: 0.3)) { progress = CGFloat(tab) }
+                withAnimation(Motion.quick) { progress = CGFloat(tab) }
             })
         .panel()
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)

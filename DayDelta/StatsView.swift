@@ -57,8 +57,8 @@ struct StatsView: View {
                 .padding()
                 // One smooth animation drives the whole panel — donut arcs morph and
                 // rows fade/slide — on any period/type change.
-                .animation(.smooth(duration: 0.45), value: period)
-                .animation(.smooth(duration: 0.45), value: type)
+                .animation(Motion.smooth, value: period)
+                .animation(Motion.smooth, value: type)
                 .sensoryFeedback(.selection, trigger: period)
                 .sensoryFeedback(.selection, trigger: type)
             }

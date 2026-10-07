@@ -4,6 +4,13 @@ import UIKit
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
 
+/// Shared animation feel so every transition and number roll moves uniformly
+/// (runs at the display's native refresh — 120Hz on ProMotion, enabled in project.yml).
+enum Motion {
+    static let quick = Animation.snappy(duration: 0.35)
+    static let smooth = Animation.snappy(duration: 0.45)
+}
+
 /// A transparent page header: a large title with optional trailing controls.
 /// Replaces NavigationStack chrome on the paged tabs so they stay see-through and
 /// the single root background shows behind every page.
