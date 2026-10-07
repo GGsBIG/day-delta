@@ -40,7 +40,7 @@ struct ContentView: View {
                 } label: { Image(systemName: "ellipsis.circle").foregroundStyle(Color.appInk) }
                 Button { showingAdd = true } label: { Image(systemName: "plus").foregroundStyle(Color.appInk) }
             }
-            .font(.system(size: 18, weight: .semibold))
+            .font(.system(size: 13, weight: .semibold))
             Group {
                 if events.isEmpty {
                     ContentUnavailableView("No events",
