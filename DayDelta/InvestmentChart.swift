@@ -35,8 +35,8 @@ struct InvestmentChartCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             valueBlock
-            periodRow
             chart.frame(height: 190)
+            periodRow
         }
         .padding(.vertical, 8)
         .task(id: "\(period.rawValue)|\(signature)") { await reload() }
