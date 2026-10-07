@@ -2,21 +2,15 @@ import SwiftUI
 import Charts
 
 /// Period options for the portfolio chart.
-private enum ChartPeriod: Int, CaseIterable, Identifiable {
-    case days7 = 7, days30 = 30, days90 = 90
-    var id: Int { rawValue }
-    var label: String { "\(rawValue) days" }
-}
-
-/// A detailed portfolio value chart: period toggle, a big scrub-aware total that
-/// rolls to its value, "+X% vs previous", a solid this-period line + dashed
-/// previous-period line with area fill, axes, gridlines, and touch scrubbing.
+/// A detailed portfolio value chart over a fixed 90-day window: a big scrub-aware
+/// total that rolls to its value, gain amount + %, an area line, axes, gridlines,
+/// and touch scrubbing.
 /// Values mix currencies (USD stocks + TWD stocks/gold) like the portfolio total.
 struct InvestmentChartCard: View {
     let holdings: [Holding]
 
+    private let days = 90   // fixed 90-day window (no user toggle)
     @AppStorage("accentHex") private var accentHex = "#5227FF"
-    @State private var period: ChartPeriod = .days30
     @State private var thisSeries: [PortfolioPoint] = []
     @State private var loading = false
     @State private var selected: Date?
@@ -36,10 +30,9 @@ struct InvestmentChartCard: View {
         VStack(alignment: .leading, spacing: 16) {
             valueBlock
             chart.frame(height: 190)
-            periodRow
         }
         .padding(.vertical, 8)
-        .task(id: "\(period.rawValue)|\(signature)") { await reload() }
+        .task(id: signature) { await reload() }
     }
 
     // MARK: Value block (matches the Accounts "Spend Account" style)
@@ -70,22 +63,6 @@ struct InvestmentChartCard: View {
         }
     }
 
-    private var periodRow: some View {
-        HStack(spacing: 2) {
-            ForEach(ChartPeriod.allCases) { p in
-                let on = period == p
-                Button { period = p } label: {
-                    Text(p.label)
-                        .font(.system(.footnote, design: .rounded)).fontWeight(on ? .bold : .regular)
-                        .foregroundStyle(on ? .white : .white.opacity(0.5))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background { if on { Capsule().fill(accentGradient(accentHex)) } }
-                }.buttonStyle(.plain)
-            }
-        }
-        .padding(3).background(Capsule().fill(.white.opacity(0.06)))
-    }
 
     // MARK: Chart
 
@@ -145,7 +122,6 @@ struct InvestmentChartCard: View {
         guard !holdings.isEmpty else { thisSeries = []; return }
         loading = true
         defer { loading = false }
-        let days = period.rawValue
         var history: [String: [(date: Date, close: Decimal)]] = [:]
         for s in Set(holdings.filter { $0.kind != kindGold && !$0.symbol.isEmpty }.map(\.symbol)) {
             history[s] = await QuoteService.history(for: s, days: days)
@@ -154,7 +130,7 @@ struct InvestmentChartCard: View {
             history["GOLD"] = await QuoteService.goldHistory(days: days)
         }
         let cur = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: Date())
-        // Animate the curve morph when the period changes.
+        // Animate the curve morph when data changes.
         withAnimation(.easeInOut(duration: 0.5)) { thisSeries = cur }
     }
 }
