@@ -173,6 +173,7 @@ func kindIcon(_ name: String) -> String { investmentKinds.first { $0.name == nam
 let usStocks: [(symbol: String, name: String)] = [
     ("AAPL","Apple"),("MSFT","Microsoft"),("NVDA","NVIDIA"),("GOOGL","Alphabet"),("AMZN","Amazon"),
     ("TSM","TSMC ADR"),("ASML","ASML"),("BABA","Alibaba"),("NIO","NIO"),("ARM","Arm Holdings"),
+    ("SPCX","SPAC & New Issue ETF"),("RKLB","Rocket Lab"),("SPCE","Virgin Galactic"),("ARKX","ARK Space ETF"),
     ("META","Meta Platforms"),("TSLA","Tesla"),("BRK-B","Berkshire Hathaway"),("AVGO","Broadcom"),("JPM","JPMorgan Chase"),
     ("V","Visa"),("MA","Mastercard"),("UNH","UnitedHealth"),("LLY","Eli Lilly"),("JNJ","Johnson & Johnson"),
     ("XOM","Exxon Mobil"),("WMT","Walmart"),("PG","Procter & Gamble"),("HD","Home Depot"),("COST","Costco"),

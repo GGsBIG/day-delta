@@ -389,19 +389,34 @@ private struct StockListView: View {
         return all.filter { $0.symbol.lowercased().contains(q) || $0.name.lowercased().contains(q) }
     }
 
+    /// The typed query as a ticker, when it isn't already in the list.
+    private var customTicker: String? {
+        let t = query.trimmingCharacters(in: .whitespaces).uppercased()
+        guard !t.isEmpty, !items.contains(where: { $0.symbol.uppercased() == t }) else { return nil }
+        return t
+    }
+
     var body: some View {
         NavigationStack {
-            List(items, id: \.symbol) { item in
-                Button { onPick(item.symbol, item.name); dismiss() } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.symbol).foregroundStyle(Color.appInk)
-                            Text(item.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                        }
-                        Spacer()
+            List {
+                if let t = customTicker {
+                    Button { onPick(t, t); dismiss() } label: {
+                        Label("Use “\(t)”", systemImage: "plus.circle").foregroundStyle(Color.appInk)
                     }
+                    .listRowBackground(Color.white.opacity(0.06))
                 }
-                .listRowBackground(Color.white.opacity(0.06))
+                ForEach(items, id: \.symbol) { item in
+                    Button { onPick(item.symbol, item.name); dismiss() } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.symbol).foregroundStyle(Color.appInk)
+                                Text(item.name).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .listRowBackground(Color.white.opacity(0.06))
+                }
             }
             .font(.system(.body, design: .rounded))
             .listStyle(.insetGrouped)
