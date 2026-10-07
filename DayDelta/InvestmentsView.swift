@@ -25,14 +25,10 @@ struct InvestmentsView: View {
                 if refreshing {
                     ProgressView()
                 } else {
-                    Button { Task { await refreshQuotes() } } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 22, weight: .semibold)).foregroundStyle(Color.appInk)
-                    }
+                    Button { Task { await refreshQuotes() } } label: { Image(systemName: "arrow.clockwise") }
                 }
                 Button { editing = Holding(kind: kindUSStocks, name: "", quantity: 0, costPerUnit: 0, currentPrice: 0) } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .semibold)).foregroundStyle(Color.appInk)
                 }
             }
             switcher

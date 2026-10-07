@@ -24,7 +24,6 @@ struct LedgerView: View {
         VStack(spacing: 0) {
             PageHeader("Ledger") {
                 Button("Edit") { managing = true }
-                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.appInk)
             }
             ledgerList
         }

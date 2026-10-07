@@ -31,16 +31,15 @@ struct ContentView: View {
                 if !autoSort {
                     Button(editMode.isEditing ? "Done" : "Edit") {
                         withAnimation { editMode = editMode.isEditing ? .inactive : .active }
-                    }.foregroundStyle(Color.appInk)
+                    }
                 }
                 Menu {
                     Toggle("Auto sort by date", isOn: $autoSort)
                     Button { exporting = true } label: { Label("Export…", systemImage: "square.and.arrow.up") }
                     Button { importing = true } label: { Label("Import…", systemImage: "square.and.arrow.down") }
-                } label: { Image(systemName: "ellipsis.circle").foregroundStyle(Color.appInk) }
-                Button { showingAdd = true } label: { Image(systemName: "plus").foregroundStyle(Color.appInk) }
+                } label: { Image(systemName: "ellipsis.circle") }
+                Button { showingAdd = true } label: { Image(systemName: "plus") }
             }
-            .font(.system(size: 13, weight: .semibold))
             Group {
                 if events.isEmpty {
                     ContentUnavailableView("No events",
