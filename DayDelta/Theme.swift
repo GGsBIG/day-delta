@@ -24,7 +24,7 @@ struct PageHeader<Trailing: View>: View {
             Spacer()
             // One size/color for every page's header controls.
             trailing
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Color.appInk)
         }
         .padding(.horizontal)

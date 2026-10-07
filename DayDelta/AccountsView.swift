@@ -115,7 +115,7 @@ struct AccountsView: View {
             Spacer()
             Button { showingColors = true } label: {
                 Image(systemName: "paintpalette.fill")
-                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.text)
+                    .font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.text)
                     .frame(width: 42, height: 42)
                     .liquidGlass(Circle())
             }
