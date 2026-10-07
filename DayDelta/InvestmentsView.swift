@@ -54,7 +54,7 @@ struct InvestmentsView: View {
                         .listRowBackground(Color.white.opacity(0.06))
                     }
                 }
-                .listStyle(.insetGrouped)
+                .listStyle(.plain)   // full-width rows aligned to the 16pt page insets
                 .scrollContentBackground(.hidden)
                 .refreshable { await refreshQuotes() }
             }
