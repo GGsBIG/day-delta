@@ -48,6 +48,7 @@ struct InvestmentsView: View {
                     .frame(maxHeight: .infinity)
             } else {
                 List {
+                    Section { InvestmentChartCard(holdings: holdings).listRowBackground(Color.clear) }
                     Section { summary.listRowBackground(Color.clear) }
                     Section("Holdings") {
                         ForEach(groups) { g in

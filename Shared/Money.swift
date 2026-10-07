@@ -235,6 +235,56 @@ func parseQuotePrice(_ data: Data) -> Decimal? {
     return Decimal(price)
 }
 
+/// Pulls a daily (date, close) series from Yahoo v8 chart JSON, skipping nulls. Pure.
+func parseChartSeries(_ data: Data) -> [(date: Date, close: Decimal)] {
+    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let chart = root["chart"] as? [String: Any],
+          let result = (chart["result"] as? [[String: Any]])?.first,
+          let stamps = result["timestamp"] as? [Double],
+          let indicators = result["indicators"] as? [String: Any],
+          let closes = (indicators["quote"] as? [[String: Any]])?.first?["close"] as? [Double?]
+    else { return [] }
+    return zip(stamps, closes).compactMap { ts, c in
+        guard let c else { return nil }
+        return (Date(timeIntervalSince1970: ts), Decimal(c))
+    }
+}
+
+/// One sample on the portfolio value curve.
+struct PortfolioPoint: Identifiable, Hashable {
+    let date: Date
+    let value: Decimal
+    var id: Date { date }
+    var doubleValue: Double { NSDecimalNumber(decimal: value).doubleValue }
+}
+
+/// Daily portfolio market value over `days` ending at `endingAt`. For each day,
+/// value = Σ holdings bought on/before that day × the symbol's as-of close.
+/// `history` maps symbol → ascending (date, close). Pure.
+func portfolioSeries(holdings: [Holding], history: [String: [(date: Date, close: Decimal)]],
+                     days: Int, endingAt: Date, calendar: Calendar = .current) -> [PortfolioPoint] {
+    let end = calendar.startOfDay(for: endingAt)
+    func asOf(_ series: [(date: Date, close: Decimal)], _ day: Date) -> Decimal? {
+        series.last { $0.date <= calendar.date(byAdding: .day, value: 1, to: day)! }?.close
+    }
+    return (0..<days).reversed().compactMap { back in
+        guard let day = calendar.date(byAdding: .day, value: -back, to: end) else { return nil }
+        var total: Decimal = 0
+        for h in holdings where calendar.startOfDay(for: h.date) <= day {
+            let key = h.kind == kindGold ? "GOLD" : h.symbol
+            if let close = asOf(history[key] ?? [], day) { total += h.quantity * close }
+        }
+        return PortfolioPoint(date: day, value: total)
+    }
+}
+
+/// Percent change from `prev` to `now` (0 when prev is 0).
+func changePct(_ now: Decimal, _ prev: Decimal) -> Double {
+    let p = (prev as NSDecimalNumber).doubleValue
+    guard p != 0 else { return 0 }
+    return ((now as NSDecimalNumber).doubleValue - p) / abs(p) * 100
+}
+
 enum TxnStore {
     private static let key = "daydelta.txns"
     private static var cache: [Txn]?

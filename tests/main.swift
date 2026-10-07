@@ -200,6 +200,30 @@ assert(groups[1].symbol == "AAPL" && groups[1].lots.count == 1)
 let goldTael = goldTWDPerTael(usdPerOz: 2000, usdTwd: 32)
 assert(goldTael > 77000 && goldTael < 78000)   // ≈ 77,161
 
+// parseChartSeries: pull daily (date, close) out of Yahoo chart JSON, skip nulls
+let chartJSON = #"{"chart":{"result":[{"timestamp":[1000,1086400,1172800],"indicators":{"quote":[{"close":[100.0,null,120.0]}]}}]}}"#
+let ser = parseChartSeries(Data(chartJSON.utf8))
+assert(ser.count == 2)   // the null is skipped
+assert(ser[0].close == Decimal(100) && ser[1].close == Decimal(120))
+assert(parseChartSeries(Data("garbage".utf8)).isEmpty)
+
+// portfolioSeries: bought on day 2 of a 3-day window; 0 before, qty×close after
+var pcal = Calendar(identifier: .gregorian)
+pcal.timeZone = TimeZone(identifier: "America/New_York")!
+let d1 = day(2026, 6, 1), d2 = day(2026, 6, 2), d3 = day(2026, 6, 3)
+let hist: [String: [(date: Date, close: Decimal)]] = ["AAPL": [(d1, 100), (d2, 110), (d3, 120)]]
+let buy = Holding(kind: "US Stocks", name: "Apple", symbol: "AAPL", quantity: 10,
+                  costPerUnit: 100, currentPrice: 120, date: d2)
+let pser = portfolioSeries(holdings: [buy], history: hist, days: 3, endingAt: d3, calendar: pcal)
+assert(pser.count == 3)
+assert(pser[0].value == 0)        // day1: not yet bought
+assert(pser[1].value == 1100)     // day2: 10 × 110
+assert(pser[2].value == 1200)     // day3: 10 × 120
+
+// changePct
+assert(abs(changePct(120, 100) - 20) < 0.001)
+assert(changePct(120, 0) == 0)
+
 print("all DayMath tests passed")
 
 print("all money tests passed")
