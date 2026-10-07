@@ -187,8 +187,11 @@ struct InvestmentChartCard: View {
         let prevRaw = portfolioSeries(holdings: holdings, history: history, days: days, endingAt: prevEnd)
         // Shift previous window forward so it overlays the current x-range.
         let prevShift = prevRaw.map { PortfolioPoint(date: cal.date(byAdding: .day, value: days, to: $0.date) ?? $0.date, value: $0.value) }
-        thisSeries = cur
-        prevSeries = prevShift
+        // Animate the curve morph when the period changes.
+        withAnimation(.easeInOut(duration: 0.5)) {
+            thisSeries = cur
+            prevSeries = prevShift
+        }
     }
 }
 

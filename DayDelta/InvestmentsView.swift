@@ -44,6 +44,7 @@ struct InvestmentsView: View {
                     Section("Holdings") {
                         ForEach(groups) { g in
                             Button { viewingGroup = GroupKey(id: g.key) } label: { groupRow(g) }.buttonStyle(.plain)
+                                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
                                 .swipeActions {
                                     Button(role: .destructive) {
                                         app.deleteHoldings(ids: g.lots.map(\.id))
@@ -144,6 +145,7 @@ private struct HoldingGroupSheet: View {
     let groupKey: String
     @State private var app = AppData.shared
     @State private var editing: Holding?
+    @State private var displayName = ""
     @Environment(\.dismiss) private var dismiss
 
     private var lots: [Holding] { groupHoldings(app.holdings).first { $0.key == groupKey }?.lots ?? [] }
@@ -153,6 +155,12 @@ private struct HoldingGroupSheet: View {
         NavigationStack {
             List {
                 Section { header.listRowBackground(Color.clear) }
+                Section("Display name") {
+                    TextField("Name", text: $displayName)
+                        .onSubmit(renameAll)
+                        .submitLabel(.done)
+                        .listRowBackground(Color.white.opacity(0.06))
+                }
                 Section("Purchases") {
                     ForEach(lots) { lot in
                         Button { editing = lot } label: { lotRow(lot) }.buttonStyle(.plain)
@@ -180,6 +188,16 @@ private struct HoldingGroupSheet: View {
         }
         .preferredColorScheme(.dark).tint(.white)
         .onChange(of: lots.count) { _, c in if c == 0 { dismiss() } }
+        .onAppear { displayName = group.name }
+    }
+
+    /// Rename every purchase in this group to the chosen display name.
+    private func renameAll() {
+        let name = displayName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { displayName = group.name; return }
+        for lot in lots where lot.name != name {
+            var l = lot; l.name = name; app.saveHolding(l)
+        }
     }
 
     private var header: some View {
