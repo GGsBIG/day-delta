@@ -8,6 +8,7 @@ struct InvestmentsView: View {
     @State private var viewingGroup: GroupKey?
     @State private var filter: String? = nil      // nil = All; else a kind name
     @State private var refreshing = false
+    @AppStorage("accentHex") private var accentHex = "#5227FF"
 
     private struct GroupKey: Identifiable { let id: String }
 
@@ -87,7 +88,7 @@ struct InvestmentsView: View {
                             .font(.system(.subheadline, design: .rounded)).fontWeight(.medium)
                             .foregroundStyle(on ? .white : Color.appInk)
                             .padding(.vertical, 8).padding(.horizontal, 16)
-                            .background(Capsule().fill(on ? AnyShapeStyle(Color.appInk.opacity(0.9)) : AnyShapeStyle(Color.appInk.opacity(0.1))))
+                            .background(Capsule().fill(on ? AnyShapeStyle(accentGradient(accentHex)) : AnyShapeStyle(Color.appInk.opacity(0.1))))
                     }.buttonStyle(.plain)
                 }
             }

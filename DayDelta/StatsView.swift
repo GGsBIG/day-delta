@@ -9,6 +9,7 @@ struct StatsView: View {
 
     @State private var period: StatPeriod = .month
     @State private var type: TxnType = .expense
+    @AppStorage("accentHex") private var accentHex = "#5227FF"
 
     private func color(_ id: UUID) -> Color {
         Color(hex: categories.first { $0.id == id }?.colorHex ?? "#9CA3AF")
@@ -34,11 +35,13 @@ struct StatsView: View {
                         ForEach(StatPeriod.allCases, id: \.self) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                    .tint(Color(hex: accentHex))
 
                     Picker("Type", selection: $type) {
                         Text("Expense").tag(TxnType.expense)
                         Text("Income").tag(TxnType.income)
                     }
+                    .tint(Color(hex: accentHex))
                     .pickerStyle(.segmented)
 
                     if breakdown.isEmpty {

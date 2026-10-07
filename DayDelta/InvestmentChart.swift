@@ -15,6 +15,7 @@ private enum ChartPeriod: Int, CaseIterable, Identifiable {
 struct InvestmentChartCard: View {
     let holdings: [Holding]
 
+    @AppStorage("accentHex") private var accentHex = "#5227FF"
     @State private var period: ChartPeriod = .days30
     @State private var thisSeries: [PortfolioPoint] = []
     @State private var prevSeries: [PortfolioPoint] = []   // dates shifted to overlay
@@ -59,7 +60,7 @@ struct InvestmentChartCard: View {
                             .font(.system(.footnote, design: .rounded)).fontWeight(on ? .bold : .regular)
                             .foregroundStyle(on ? .white : .white.opacity(0.5))
                             .padding(.vertical, 6).padding(.horizontal, 10)
-                            .background { if on { Capsule().fill(.white.opacity(0.14)) } }
+                            .background { if on { Capsule().fill(accentGradient(accentHex)) } }
                     }.buttonStyle(.plain)
                 }
             }
