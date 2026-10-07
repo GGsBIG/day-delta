@@ -47,7 +47,9 @@ struct MonthCalendarView: View {
     private var weekdayRow: some View {
         let symbols = orderedWeekdaySymbols()
         return LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(symbols, id: \.self) { s in
+            // Index-based id: weekday letters repeat (S,M,T,W,T,F,S), so \.self would
+            // collide and SwiftUI warns about duplicate IDs.
+            ForEach(Array(symbols.enumerated()), id: \.offset) { _, s in
                 Text(s).font(.system(.caption2, design: .rounded))
                     .foregroundStyle(Color.appInk.opacity(0.6))
             }
