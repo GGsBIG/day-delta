@@ -48,12 +48,13 @@ private struct RootView: View {
         .fontDesign(.rounded)
         .fontWeight(.thin)
         .fullScreenCover(isPresented: Binding(get: { lock.locked }, set: { _ in })) {
-            LockScreen { lock.unlockIfNeeded() }
+            LockScreen { lock.authenticate() }   // LockScreen auto-prompts on appear
         }
-        .task { lock.unlockIfNeeded() }
+        // Re-lock when leaving the foreground; the cover's own .task re-prompts on
+        // return. We do NOT auth on .active (the biometric sheet toggles scenePhase,
+        // which would otherwise loop).
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { lock.unlockIfNeeded() }
-            else if phase == .background { lock.lock() }
+            if phase == .background { lock.lock() }
         }
     }
 

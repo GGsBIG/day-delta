@@ -326,7 +326,6 @@ struct ColorSettingsView: View {
                     Toggle(isOn: $appLockEnabled) {
                         Label("Require Face ID", systemImage: "faceid")
                     }
-                    .onChange(of: appLockEnabled) { _, on in if on { LockManager.shared.lock() } }
                 } header: {
                     Text("Privacy")
                 } footer: {
