@@ -27,7 +27,36 @@ import WidgetKit
 
     func addTxn(_ t: Txn) { txns.append(t) }
     func updateTxn(_ t: Txn) { if let i = txns.firstIndex(where: { $0.id == t.id }) { txns[i] = t } }
-    func deleteTxn(id: UUID) { txns.removeAll { $0.id == id } }
+    /// Delete a txn; a transfer leg takes its paired leg with it.
+    func deleteTxn(id: UUID) {
+        if let tid = txns.first(where: { $0.id == id })?.transferID {
+            txns.removeAll { $0.transferID == tid }
+        } else {
+            txns.removeAll { $0.id == id }
+        }
+    }
+
+    // MARK: Transfers (between accounts)
+
+    /// The internal category both transfer legs use. Created once if missing.
+    private func transferCategoryID() -> UUID {
+        if let c = categories.first(where: { $0.isTransfer }) { return c.id }
+        let c = Category(name: "Transfer", type: .expense, icon: "arrow.left.arrow.right",
+                         colorHex: "#9CA3AF", isTransfer: true)
+        categories.append(c)
+        return c.id
+    }
+
+    /// Move `amount` between accounts: an expense on `from` + income on `to`, linked
+    /// by a shared transferID. Account balances change; the grand total nets to 0.
+    func transfer(amount: Decimal, from: UUID?, to: UUID?, date: Date, note: String?) {
+        let catID = transferCategoryID()
+        let tid = UUID()
+        txns.append(Txn(type: .expense, amount: amount, categoryID: catID, date: date,
+                        note: note, accountID: from, transferID: tid))
+        txns.append(Txn(type: .income, amount: amount, categoryID: catID, date: date,
+                        note: note, accountID: to, transferID: tid))
+    }
 
     /// Merge imported records (upsert by id). Used by backup import.
     func merge(txns t: [Txn], categories c: [Category], accounts a: [Account], holdings h: [Holding]) {

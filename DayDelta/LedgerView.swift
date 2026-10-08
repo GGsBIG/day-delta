@@ -29,7 +29,10 @@ struct LedgerView: View {
         }
         .sheet(isPresented: $requestAddTxn) {
             TxnEditView(txn: nil, categories: categories, accounts: accounts,
-                        defaultDate: selectedDay) { saved in
+                        defaultDate: selectedDay,
+                        onTransfer: { amount, from, to, date, note in
+                            app.transfer(amount: amount, from: from, to: to, date: date, note: note); persist()
+                        }) { saved in
                 app.addTxn(saved); persist()
             }
         }

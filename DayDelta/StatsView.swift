@@ -20,7 +20,9 @@ struct StatsView: View {
 
     /// (categoryID, total) for the selected period + type, highest first.
     private var breakdown: [(categoryID: UUID, total: Decimal)] {
+        let transferIDs = Set(categories.filter { $0.isTransfer }.map { $0.id })
         let inPeriod = txnsInPeriod(txns, period: period, containing: Date())
+            .filter { !transferIDs.contains($0.categoryID) }
         return categoryTotals(inPeriod, type: type)
     }
 

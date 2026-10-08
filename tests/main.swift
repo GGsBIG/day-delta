@@ -160,6 +160,20 @@ assert(accountBalance(balTxns, accountID: accA) == 700)
 assert(accountBalance(balTxns, accountID: accB) == -50)
 assert(accountBalance(balTxns, accountID: nil) == -20)
 
+// Transfer: 1000 from accA (expense) to accB (income) via a shared transferID.
+// accA drops 1000, accB rises 1000, grand total unchanged.
+let xferID = UUID(), xferCat = UUID()
+let withTransfer = balTxns + [
+    Txn(type: .expense, amount: 1000, categoryID: xferCat, date: day(2026, 10, 4), accountID: accA, transferID: xferID),
+    Txn(type: .income,  amount: 1000, categoryID: xferCat, date: day(2026, 10, 4), accountID: accB, transferID: xferID),
+]
+assert(accountBalance(withTransfer, accountID: accA) == -300)   // 700 - 1000
+assert(accountBalance(withTransfer, accountID: accB) == 950)    // -50 + 1000
+let totalBefore = balTxns.reduce(Decimal(0)) { $0 + ($1.type == .income ? $1.amount : -$1.amount) }
+let totalAfter = withTransfer.reduce(Decimal(0)) { $0 + ($1.type == .income ? $1.amount : -$1.amount) }
+assert(totalBefore == totalAfter)   // transfer nets to zero
+assert(withTransfer.filter { $0.transferID == xferID }.count == 2)   // two linked legs
+
 // balanceSeries: 7 daily cumulative points ending today; accA climbs 1000 -> 700
 let series = balanceSeries(balTxns, scope: accA, period: .week, now: day(2026, 10, 5), calendar: cal)
 assert(series.count == 7)

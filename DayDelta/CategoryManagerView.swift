@@ -63,7 +63,7 @@ struct CategoryManagerView: View {
         List {
             ForEach(TxnType.allCases, id: \.self) { type in
                 Section(type == .expense ? "Expense" : "Income") {
-                    ForEach(categories.filter { $0.type == type }) { c in
+                    ForEach(categories.filter { $0.type == type && !$0.isTransfer }) { c in
                         Button { editing = c } label: { row(c) }
                             .buttonStyle(.plain)
                     }

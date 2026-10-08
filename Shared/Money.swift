@@ -46,6 +46,7 @@ struct Txn: Codable, Identifiable, Hashable {
     var note: String?
     var eventID: UUID?        // optional link to a countdown Event
     var accountID: UUID?      // optional payment account; nil for legacy rows
+    var transferID: UUID?     // links the two legs of an account transfer
 }
 
 /// A spending/earning bucket. `builtin` categories can be renamed/recolored but
@@ -60,6 +61,8 @@ struct Category: Codable, Identifiable, Hashable {
     /// Money moved into an investment/savings bucket (e.g. buying stocks). These
     /// expenses are excluded from "spending", so they count as saved, not spent.
     var isInvestment: Bool = false
+    /// Internal category for account transfers; excluded from income/expense stats.
+    var isTransfer: Bool = false
 }
 
 extension Category {

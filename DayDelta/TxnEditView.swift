@@ -3,38 +3,54 @@ import SwiftUI
 /// Add/edit one transaction. Custom numeric keypad for the amount (no system
 /// keyboard); category and account are chosen on pushed pages.
 struct TxnEditView: View {
+    /// Mode selector: a plain expense/income txn, or an account-to-account transfer.
+    private enum Mode: Hashable { case expense, income, transfer }
+
     let txn: Txn?
     let categories: [Category]
     var accounts: [Account] = []
     var defaultDate: Date? = nil
     let onSave: (Txn) -> Void
+    /// Called for a transfer: (amount, from, to, date, note). Only used when adding.
+    var onTransfer: ((Decimal, UUID?, UUID?, Date, String?) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
-    @State private var type: TxnType
+    @State private var mode: Mode
     @State private var amountText: String
     @State private var categoryID: UUID?
     @State private var accountID: UUID?
+    @State private var fromID: UUID?
+    @State private var toID: UUID?
     @State private var date: Date
     @State private var note: String
     @State private var eventID: UUID?
 
     init(txn: Txn?, categories: [Category], accounts: [Account] = [],
-         defaultDate: Date? = nil, onSave: @escaping (Txn) -> Void) {
+         defaultDate: Date? = nil,
+         onTransfer: ((Decimal, UUID?, UUID?, Date, String?) -> Void)? = nil,
+         onSave: @escaping (Txn) -> Void) {
         self.txn = txn
         self.categories = categories
         self.accounts = accounts
         self.defaultDate = defaultDate
+        self.onTransfer = onTransfer
         self.onSave = onSave
-        _type = State(initialValue: txn?.type ?? .expense)
+        _mode = State(initialValue: txn?.type == .income ? .income : .expense)
         _amountText = State(initialValue: txn.map { "\($0.amount)" } ?? "")
         _categoryID = State(initialValue: txn?.categoryID)
         _accountID = State(initialValue: txn?.accountID)
+        _fromID = State(initialValue: nil)
+        _toID = State(initialValue: nil)
         _date = State(initialValue: txn?.date ?? defaultDate ?? Date())
         _note = State(initialValue: txn?.note ?? "")
         _eventID = State(initialValue: txn?.eventID)
     }
 
-    private var typeCategories: [Category] { categories.filter { $0.type == type } }
+    private var type: TxnType { mode == .income ? .income : .expense }
+    private var isTransfer: Bool { mode == .transfer }
+    private var typeCategories: [Category] { categories.filter { $0.type == type && !$0.isTransfer } }
+    private var fromAccount: Account? { accounts.first { $0.id == fromID } }
+    private var toAccount: Account? { accounts.first { $0.id == toID } }
     private var selectedCategory: Category? { categories.first { $0.id == categoryID } }
     private var selectedAccount: Account? { accounts.first { $0.id == accountID } }
 
@@ -48,26 +64,41 @@ struct TxnEditView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 8)
 
-                Picker("Type", selection: $type) {
-                    Text("Expense").tag(TxnType.expense)
-                    Text("Income").tag(TxnType.income)
+                Picker("Mode", selection: $mode) {
+                    Text("Expense").tag(Mode.expense)
+                    Text("Income").tag(Mode.income)
+                    if txn == nil { Text("Transfer").tag(Mode.transfer) }
                 }
                 .pickerStyle(.segmented)
 
                 row("Date") { DatePicker("", selection: $date, displayedComponents: .date).labelsHidden() }
 
-                NavigationLink {
-                    CategoryPickerView(categories: typeCategories, selection: $categoryID)
-                } label: {
-                    pickerRow("Category", color: selectedCategory.map { Color(hex: $0.colorHex) },
-                              value: selectedCategory?.name ?? "Select")
-                }
-
-                NavigationLink {
-                    AccountPickerView(accounts: accounts, selection: $accountID)
-                } label: {
-                    pickerRow("Account", color: selectedAccount.map { Color(hex: $0.colorHex) },
-                              value: selectedAccount?.name ?? "Select")
+                if isTransfer {
+                    NavigationLink {
+                        AccountPickerView(accounts: accounts, selection: $fromID)
+                    } label: {
+                        pickerRow("From", color: fromAccount.map { Color(hex: $0.colorHex) },
+                                  value: fromAccount?.name ?? "Select")
+                    }
+                    NavigationLink {
+                        AccountPickerView(accounts: accounts, selection: $toID)
+                    } label: {
+                        pickerRow("To", color: toAccount.map { Color(hex: $0.colorHex) },
+                                  value: toAccount?.name ?? "Select")
+                    }
+                } else {
+                    NavigationLink {
+                        CategoryPickerView(categories: typeCategories, selection: $categoryID)
+                    } label: {
+                        pickerRow("Category", color: selectedCategory.map { Color(hex: $0.colorHex) },
+                                  value: selectedCategory?.name ?? "Select")
+                    }
+                    NavigationLink {
+                        AccountPickerView(accounts: accounts, selection: $accountID)
+                    } label: {
+                        pickerRow("Account", color: selectedAccount.map { Color(hex: $0.colorHex) },
+                                  value: selectedAccount?.name ?? "Select")
+                    }
                 }
 
                 row("Note") {
@@ -86,9 +117,13 @@ struct TxnEditView: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save") { save() } }
             }
-            .onChange(of: type) { _, _ in
+            .onChange(of: mode) { _, _ in
                 if let cid = categoryID, !typeCategories.contains(where: { $0.id == cid }) {
                     categoryID = typeCategories.first?.id
+                }
+                if isTransfer {   // default From = first non-Cash, To = Cash
+                    if fromID == nil { fromID = accounts.first(where: { $0.name != "Cash" })?.id ?? accounts.first?.id }
+                    if toID == nil { toID = accounts.first(where: { $0.name == "Cash" })?.id ?? accounts.last?.id }
                 }
             }
             .onAppear {
@@ -126,14 +161,24 @@ struct TxnEditView: View {
     }
 
     private func save() {
-        guard let amount = Decimal(string: amountText), amount > 0,
-              let categoryID else { return }
+        guard let amount = Decimal(string: amountText), amount > 0 else { return }
+        let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let noteOrNil = trimmedNote.isEmpty ? nil : trimmedNote
+
+        if isTransfer {
+            guard let fromID, let toID, fromID != toID else { return }
+            onTransfer?(amount, fromID, toID, date, noteOrNil)
+            dismiss()
+            return
+        }
+
+        guard let categoryID else { return }
         var t = txn ?? Txn(type: type, amount: amount, categoryID: categoryID, date: date)
         t.type = type
         t.amount = amount
         t.categoryID = categoryID
         t.date = date
-        t.note = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
+        t.note = noteOrNil
         t.eventID = eventID
         t.accountID = accountID
         onSave(t)
