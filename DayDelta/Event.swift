@@ -98,7 +98,7 @@ enum EventStore {
 
     static func load() -> [Event] {
         if let cache { return cache }
-        let events = (AppGroup.defaults.data(forKey: key))
+        let events = (UserDefaults.standard.data(forKey: key))
             .flatMap { try? JSONDecoder().decode([Event].self, from: $0) } ?? []
         cache = events
         return events
@@ -107,6 +107,6 @@ enum EventStore {
     static func save(_ events: [Event]) {
         cache = events
         guard let data = try? JSONEncoder().encode(events) else { return }
-        AppGroup.defaults.set(data, forKey: key)
+        UserDefaults.standard.set(data, forKey: key)
     }
 }

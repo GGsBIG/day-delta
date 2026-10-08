@@ -33,11 +33,6 @@ targets:
         # Allow ProMotion 120Hz for the app's animations (otherwise capped at 60).
         INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone: YES
         INFOPLIST_KEY_NSFaceIDUsageDescription: Unlock DayDelta with Face ID.
-    entitlements:
-      path: DayDelta/DayDelta.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.tcsxft.daydelta
     dependencies:
       - target: DayDeltaWidget
   DayDeltaWidget:
@@ -56,8 +51,3 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tcsxft.daydelta.app.widget
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_KEY_CFBundleDisplayName: DayDelta
-    entitlements:
-      path: DayDeltaWidget/DayDeltaWidget.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.tcsxft.daydelta

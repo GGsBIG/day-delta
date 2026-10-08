@@ -4,6 +4,14 @@ import UIKit
 /// App-wide UI constants. One corner radius so every rounded container matches.
 enum UI { static let radius: CGFloat = 20 }
 
+/// Palette offered for category and account colors (drives the Stats donut).
+let categoryColors = [
+    "#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16", "#22C55E",
+    "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", "#4F9DFF", "#3B82F6",
+    "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#F43F5E",
+    "#78716C", "#9CA3AF",
+]
+
 /// Shared animation feel so every transition and number roll moves uniformly
 /// (runs at the display's native refresh — 120Hz on ProMotion, enabled in project.yml).
 enum Motion {

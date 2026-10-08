@@ -2,8 +2,6 @@ import SwiftUI
 
 @main
 struct DayDeltaApp: App {
-    init() { AppGroup.migrateOnce() }   // move existing data into the shared app group
-
     var body: some Scene {
         WindowGroup {
             RootView()

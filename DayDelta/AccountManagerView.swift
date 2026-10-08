@@ -7,8 +7,7 @@ struct AccountManagerView: View {
 
     @State private var editing: Account?
 
-    private let colors = ["#4F9DFF", "#A855F7", "#F59E0B", "#22C55E",
-                          "#EF4444", "#14B8A6", "#EC4899", "#9CA3AF"]
+    private let colors = categoryColors
 
     var body: some View {
         List {
