@@ -20,17 +20,19 @@ struct CategoryBadge: View {
     }
 }
 
+/// SF Symbols the running OS actually has — filtered once (the ~200 `UIImage`
+/// lookups are expensive, so never redo them on every render).
+private let availableCategoryIcons = categoryIconNames.filter { UIImage(systemName: $0) != nil }
+
 /// Grid of SF Symbols for choosing a category icon. Tapping the current one clears it.
 struct CategoryIconPicker: View {
     @Binding var selection: String?
     private let cols = [GridItem(.adaptive(minimum: 46), spacing: 10)]
     var body: some View {
         // ~200 icons would make the form section huge; scroll within a fixed box.
-        // Only show symbols the running OS actually has, so no cell is ever blank.
-        let names = categoryIconNames.filter { UIImage(systemName: $0) != nil }
         ScrollView {
             LazyVGrid(columns: cols, spacing: 10) {
-                ForEach(names, id: \.self) { name in
+                ForEach(availableCategoryIcons, id: \.self) { name in
                     let on = selection == name
                     Image(systemName: name)
                         .font(.system(size: 18))
@@ -44,6 +46,7 @@ struct CategoryIconPicker: View {
             }
             .padding(.vertical, 4)
         }
+        .scrollIndicators(.hidden)   // the bar used to sit on top of the last column
         .frame(height: 260)
     }
 }

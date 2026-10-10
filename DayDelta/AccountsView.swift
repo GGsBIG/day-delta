@@ -380,9 +380,8 @@ private struct AvatarStack: View {
 }
 
 /// Grainient backdrop: drifting gradient blobs over a base gradient, finished
-/// with a film-grain overlay and boosted contrast. Animates forever via
-/// TimelineView(.animation). Colors derive from the chosen background color, so
-/// recoloring recolors the whole app's backdrop.
+/// with a film-grain overlay and boosted contrast. Colors derive from the chosen
+/// background color, so recoloring recolors the whole app's backdrop.
 struct GrainientBackground: View {
     @AppStorage("accountsBgHex") private var bgHex = "#5227FF"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -398,11 +397,14 @@ struct GrainientBackground: View {
 
     var body: some View {
         let p = palette(Color(hex: bgHex))
-        // One static frame under Reduce Motion; otherwise it animates forever.
+        // One static frame under Reduce Motion. Otherwise drift at 30fps: the blobs
+        // move slowly (≤0.22 rad/s) so 30 is indistinguishable from 120Hz, but costs
+        // ~¼ the per-frame gradient+grain rendering. TimelineView auto-pauses this
+        // off-screen and in the background, so idle pages don't burn the GPU.
         if reduceMotion {
             frame(p, t: 0)
         } else {
-            TimelineView(.animation) { timeline in
+            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
                 frame(p, t: timeline.date.timeIntervalSinceReferenceDate)
             }
         }

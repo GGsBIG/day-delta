@@ -427,9 +427,6 @@ func formatMoney(_ amount: Decimal, code: String) -> String {
 
 // MARK: - Investment currency
 
-/// US stocks are priced in USD; TW stocks and gold in TWD.
-func holdingCurrency(_ kind: String) -> String { kind == kindUSStocks ? "USD" : "TWD" }
-
 /// A holding's market value in the display currency. In USD view it's as-is (the
 /// filtered set is all US stocks); in TWD view, USD holdings are converted by `fx`.
 func value(_ marketValue: Decimal, kind: String, displayUSD: Bool, fx: Decimal) -> Decimal {
