@@ -512,14 +512,15 @@ struct BalancePoint: Identifiable, Hashable {
     var doubleValue: Double { NSDecimalNumber(decimal: balance).doubleValue }
 }
 
-/// A padded, never-zero-height Y range for a line/area chart. Flat or empty data
-/// would otherwise give Swift Charts a zero-range scale — it divides by that and
-/// floods "Invalid frame dimension (negative or non-finite)". Pure.
+/// A never-zero-height Y range for a line/area chart, padded only at the top. Flat
+/// or empty data would otherwise give Swift Charts a zero-range scale — it divides
+/// by that and floods "Invalid frame dimension (negative or non-finite)". The lower
+/// bound stays at the data minimum so the area fill bottoms at the plot floor (above
+/// the x-axis labels) instead of bleeding down into them. Pure.
 func chartYDomain(_ values: [Double]) -> ClosedRange<Double> {
     let lo = values.min() ?? 0, hi = values.max() ?? 1
     guard hi > lo else { return (lo - 1)...(lo + 1) }
-    let pad = (hi - lo) * 0.1
-    return (lo - pad)...(hi + pad)
+    return lo...(hi + (hi - lo) * 0.1)
 }
 
 /// Running balance sampled across the period. `scope` nil = every account (grand

@@ -252,7 +252,7 @@ assert(partial.count == 2 && partial[0].quantity == 6 && partial[1].quantity == 
 // chartYDomain: pads a real range, and never returns a zero-height range (flat /
 // empty data) — a zero range makes Swift Charts emit "Invalid frame dimension".
 let dom = chartYDomain([100, 200])
-assert(dom.lowerBound < 100 && dom.upperBound > 200)       // padded outward
+assert(dom.lowerBound == 100 && dom.upperBound > 200)      // bottom at min, headroom on top
 assert(chartYDomain([50, 50]) == 49.0...51.0)              // flat -> ±1, not zero
 assert(chartYDomain([]).lowerBound < chartYDomain([]).upperBound)  // empty -> non-degenerate
 

@@ -23,7 +23,7 @@ struct LedgerView: View {
         }
         .sheet(item: $editingTxn) { t in
             TxnEditView(txn: t, categories: categories, accounts: accounts) { saved in
-                app.updateTxn(saved); persist()
+                app.updateTxn(saved)
             }
         }
         .sheet(isPresented: $managing) {
@@ -95,7 +95,6 @@ struct LedgerView: View {
     /// Delete a selected-day transaction by id.
     private func delete(_ t: Txn) {
         app.deleteTxn(id: t.id)
-        persist()
     }
 
     private func row(_ t: Txn) -> some View {
@@ -114,7 +113,4 @@ struct LedgerView: View {
                 .foregroundStyle(t.type == .expense ? .red : .green)
         }
     }
-
-    /// AppData persists txns automatically; this only keeps notifications in sync.
-    private func persist() {}
 }
