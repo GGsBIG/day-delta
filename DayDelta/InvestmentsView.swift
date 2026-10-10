@@ -253,9 +253,9 @@ private struct HoldingGroupSheet: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                MoneyText(lot.marketValue).foregroundStyle(.white)
-                MoneyText(lot.gain, base: 12, prefix: lot.gain >= 0 ? "+" : "")
-                    .foregroundStyle(lot.gain >= 0 ? .green : .red)
+                Text(formatMoney(lot.marketValue)).foregroundStyle(.white)
+                Text("\(lot.gain >= 0 ? "+" : "")\(formatMoney(lot.gain))")
+                    .font(.caption).foregroundStyle(lot.gain >= 0 ? .green : .red)
             }
         }
     }

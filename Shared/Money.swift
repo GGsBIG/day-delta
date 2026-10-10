@@ -413,8 +413,16 @@ func formatMoney(_ amount: Decimal) -> String {
 }
 
 /// Currency string in a specific code (e.g. "USD" → "$", "TWD" → "NT$").
+/// Whole amounts drop the trailing ".00"; cents show only when there are any.
 func formatMoney(_ amount: Decimal, code: String) -> String {
-    amount.formatted(.currency(code: code))
+    let n = NSDecimalNumber(decimal: amount)
+    func round(_ scale: Int16) -> NSDecimalNumber {
+        n.rounding(accordingToBehavior: NSDecimalNumberHandler(
+            roundingMode: .plain, scale: scale, raiseOnExactness: false, raiseOnOverflow: false,
+            raiseOnUnderflow: false, raiseOnDivideByZero: false))
+    }
+    let digits = round(2) == round(0) ? 0 : 2
+    return amount.formatted(.currency(code: code).precision(.fractionLength(digits)))
 }
 
 // MARK: - Investment currency

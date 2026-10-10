@@ -108,7 +108,7 @@ struct StatsView: View {
                     }
                     Text(name(item.categoryID))
                     Spacer()
-                    MoneyText(item.total).foregroundStyle(Color.appInk.opacity(0.6))
+                    Text(formatMoney(item.total)).foregroundStyle(Color.appInk.opacity(0.6))
                     Text(percent(item.total)).frame(width: 52, alignment: .trailing)
                 }
                 .font(.system(.body, design: .rounded))

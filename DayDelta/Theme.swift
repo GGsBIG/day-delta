@@ -48,38 +48,6 @@ struct PageHeader<Trailing: View>: View {
     }
 }
 
-/// A money amount with its cents (fractional part) rendered smaller. Used on the
-/// non-rolling amounts (ledger / stats / holding rows); the headline numbers keep
-/// their `.contentTransition(.numericText())` slot-machine roll instead, which a
-/// split Text would break. `base` is the integer-part point size; cents are ~0.62×.
-struct MoneyText: View {
-    let amount: Decimal
-    var code: String = Locale.current.currency?.identifier ?? "USD"
-    var base: CGFloat = 17
-    var weight: Font.Weight = .regular
-    var prefix: String = ""   // e.g. "+" for gains (minus is already in the format)
-
-    init(_ amount: Decimal, code: String = Locale.current.currency?.identifier ?? "USD",
-         base: CGFloat = 17, weight: Font.Weight = .regular, prefix: String = "") {
-        self.amount = amount
-        self.code = code
-        self.base = base
-        self.weight = weight
-        self.prefix = prefix
-    }
-
-    var body: some View {
-        let s = prefix + formatMoney(amount, code: code)
-        let sep = Locale.current.decimalSeparator ?? "."
-        if let r = s.range(of: sep) {
-            Text(s[..<r.lowerBound]).font(.system(size: base, weight: weight, design: .rounded))
-            + Text(s[r.lowerBound...]).font(.system(size: base * 0.62, weight: weight, design: .rounded))
-        } else {
-            Text(s).font(.system(size: base, weight: weight, design: .rounded))
-        }
-    }
-}
-
 extension Color {
     /// "#RRGGBB" for persisting a chosen color. Pairs with `Color(hex:)`.
     func toHex() -> String {

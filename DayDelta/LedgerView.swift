@@ -117,7 +117,8 @@ struct LedgerView: View {
                 }
             }
             Spacer()
-            MoneyText(t.amount, prefix: t.type == .expense ? "-" : "+")
+            Text((t.type == .expense ? "-" : "+") + formatMoney(t.amount))
+                .font(.system(.body, design: .rounded))
                 .foregroundStyle(t.type == .expense ? .red : .green)
         }
     }
