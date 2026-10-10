@@ -155,10 +155,8 @@ struct AccountsView: View {
                     .foregroundStyle(Palette.textSoft)
                 Spacer()
             }
-            Text(formatMoney(balance))
-                .font(.system(size: 52, weight: .thin, design: .rounded)).tracking(-1.5)
+            MoneyText(balance, base: 52, weight: .thin).tracking(-1.5)
                 .foregroundStyle(Palette.text).minimumScaleFactor(0.4).lineLimit(1)
-                .contentTransition(.numericText(value: (balance as NSDecimalNumber).doubleValue))
             HStack(spacing: 10) {
                 Label(savedAmount >= 0
                         ? "You've saved \(formatMoney(savedAmount)) this \(period.label.lowercased())!"
