@@ -31,9 +31,6 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader("DayDelta") {
-                if let onClose {
-                    Button { onClose() } label: { Image(systemName: "xmark") }
-                }
                 if !autoSort {
                     Button(editMode.isEditing ? "Done" : "Edit") {
                         withAnimation { editMode = editMode.isEditing ? .inactive : .active }
@@ -45,6 +42,9 @@ struct ContentView: View {
                     Button { importing = true } label: { Label("Import…", systemImage: "square.and.arrow.down") }
                 } label: { Image(systemName: "ellipsis.circle") }
                 Button { showingAdd = true } label: { Image(systemName: "plus") }
+                if let onClose {
+                    Button { onClose() } label: { Image(systemName: "xmark") }
+                }
             }
             Group {
                 if events.isEmpty {
