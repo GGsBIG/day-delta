@@ -13,14 +13,6 @@ struct LedgerView: View {
     @State private var monthAnchor = Date()
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
 
-    /// Driven by the bottom-bar Add button in RootView. Defaults to a constant so
-    /// LedgerView still compiles/previews standalone.
-    @Binding var requestAddTxn: Bool
-
-    init(requestAddTxn: Binding<Bool> = .constant(false)) {
-        _requestAddTxn = requestAddTxn
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             PageHeader("Ledger") {
@@ -28,15 +20,6 @@ struct LedgerView: View {
                 Button("Edit") { managing = true }
             }
             ledgerList
-        }
-        .sheet(isPresented: $requestAddTxn) {
-            TxnEditView(txn: nil, categories: categories, accounts: accounts,
-                        defaultDate: selectedDay,
-                        onTransfer: { amount, from, to, date, note in
-                            app.transfer(amount: amount, from: from, to: to, date: date, note: note); persist()
-                        }) { saved in
-                app.addTxn(saved); persist()
-            }
         }
         .sheet(item: $editingTxn) { t in
             TxnEditView(txn: t, categories: categories, accounts: accounts) { saved in

@@ -13,6 +13,9 @@ struct TxnEditView: View {
     let onSave: (Txn) -> Void
     /// Called for a transfer: (amount, from, to, date, note). Only used when adding.
     var onTransfer: ((Decimal, UUID?, UUID?, Date, String?) -> Void)? = nil
+    /// Dismissal when presented as a custom overlay (where `@Environment(\.dismiss)`
+    /// is a no-op). nil = presented as a sheet, use the environment dismiss.
+    var onFinish: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var mode: Mode
@@ -30,12 +33,14 @@ struct TxnEditView: View {
     init(txn: Txn?, categories: [Category], accounts: [Account] = [],
          defaultDate: Date? = nil,
          onTransfer: ((Decimal, UUID?, UUID?, Date, String?) -> Void)? = nil,
+         onFinish: (() -> Void)? = nil,
          onSave: @escaping (Txn) -> Void) {
         self.txn = txn
         self.categories = categories
         self.accounts = accounts
         self.defaultDate = defaultDate
         self.onTransfer = onTransfer
+        self.onFinish = onFinish
         self.onSave = onSave
         _mode = State(initialValue: txn?.type == .income ? .income : .expense)
         _amountText = State(initialValue: txn.map { "\($0.amount)" } ?? "")
@@ -116,7 +121,7 @@ struct TxnEditView: View {
             .background(GrainientBackground())
             .navigationTitle(txn == nil ? "New" : "Edit")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { finish() } }
                 if txn == nil {   // adding: offer "save & add next" to batch entries
                     ToolbarItem(placement: .confirmationAction) {
                         Button { saveAndNext() } label: { Image(systemName: "plus.circle") }
@@ -194,7 +199,10 @@ struct TxnEditView: View {
         return true
     }
 
-    private func save() { if commit() { dismiss() } }
+    private func save() { if commit() { finish() } }
+
+    /// Dismiss — via the overlay closer if present, else the sheet's environment dismiss.
+    private func finish() { if let onFinish { onFinish() } else { dismiss() } }
 
     /// Save this entry and clear the amount/note for the next one — keeps category,
     /// account, date and mode so logging several in a row is one tap each.

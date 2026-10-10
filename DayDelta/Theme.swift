@@ -23,6 +23,8 @@ let categoryColors = [
 enum Motion {
     static let quick = Animation.snappy(duration: 0.35)
     static let smooth = Animation.snappy(duration: 0.45)
+    /// Spring for pop-up presentation (scale + fade), a touch of overshoot.
+    static let pop = Animation.spring(response: 0.32, dampingFraction: 0.8)
 }
 
 /// A transparent page header: a large title with optional trailing controls.
