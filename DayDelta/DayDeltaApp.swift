@@ -63,11 +63,11 @@ private struct RootView: View {
         GeometryReader { geo in
             let w = geo.size.width
             HStack(spacing: 0) {
-                ForEach(0..<5, id: \.self) { i in
+                ForEach(0..<4, id: \.self) { i in
                     page(i).frame(width: w)
                 }
             }
-            .frame(width: w * 5, alignment: .leading)
+            .frame(width: w * 4, alignment: .leading)
             .offset(x: -progress * w)
             // Pages switch only via the tab bar (tap or drag) — no content swipe,
             // so horizontal gestures inside a page (e.g. chart scrubbing) are free.
@@ -80,36 +80,29 @@ private struct RootView: View {
         case 0:  AccountsView()
         case 1:  LedgerView(requestAddTxn: $requestAddTxn)
         case 2:  StatsView()
-        case 3:  InvestmentsView()
-        default: ContentView()
+        default: InvestmentsView()
         }
     }
 
     /// Animate to a page (from a tab tap).
     private func go(to i: Int) {
-        guard i >= 0, i <= 4, CGFloat(i) != progress else { return }
+        guard i >= 0, i <= 3, CGFloat(i) != progress else { return }
         withAnimation(.bouncy(duration: 0.45)) { progress = CGFloat(i) }
     }
 
-    /// Button edge for every slot. Six slots (5 tabs + center Add) must fit the
-    /// floating bar on the narrowest iPhone, so this is a touch under the old 50.
-    private let tabSize: CGFloat = 46
-
-    /// Slot centres (in slot-width units, 6 slots) for the five tab pages. Slot 3 is
-    /// the Add button, so Invest/Days live at slots 4/5 — the scrub bridges the gap.
-    private let tabCenters: [CGFloat] = [0.5, 1.5, 2.5, 4.5, 5.5]
-
-    /// Glass pill: frosted capsule with circular icon buttons. The Add button sits
-    /// permanently in the middle. The active tab's highlight glides between slots via
+    /// Glass pill: frosted capsule with circular icon buttons. The Add button springs
+    /// in only on the Ledger tab. The active tab's highlight glides between slots via
     /// matchedGeometry, so switching is silky.
     private var tabBar: some View {
         HStack(spacing: 6) {
             tabButton(0, "creditcard")
             tabButton(1, "calendar.day.timeline.left")
+            if tab == 1 {
+                addButton
+                    .transition(.scale.combined(with: .opacity))
+            }
             tabButton(2, "chart.pie")
-            addButton
             tabButton(3, "chart.line.uptrend.xyaxis")
-            tabButton(4, "calendar")
         }
         .padding(6)
         .background(GeometryReader { g in
@@ -118,35 +111,24 @@ private struct RootView: View {
                 .onChange(of: g.size.width) { _, w in barWidth = w }
         })
         // Press-drag across the bar to scrub pages in real time: the finger's x maps
-        // to the fractional page (skipping the centre Add slot), so pages follow the
-        // finger. simultaneousGesture so it works even over the buttons; snaps on release.
+        // straight to the fractional page, so pages follow the finger. simultaneousGesture
+        // so it works even over the buttons; snaps on release.
         .simultaneousGesture(DragGesture(minimumDistance: 8)
             .onChanged { v in
                 guard barWidth > 0 else { return }
-                progress = pageFor(x: v.location.x, width: barWidth)
+                progress = min(3, max(0, v.location.x / (barWidth / 4) - 0.5))
             }
             .onEnded { _ in
                 withAnimation(Motion.quick) { progress = CGFloat(tab) }
             })
         .panel()
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 32)
         .padding(.bottom, 4)
     }
 
-    /// Finger x → fractional page, interpolating between the tab slot centres so the
-    /// scrub stays continuous across the Add button's gap in the middle.
-    private func pageFor(x: CGFloat, width: CGFloat) -> CGFloat {
-        let s = x / (width / 6)   // position in slot-width units
-        if s <= tabCenters[0] { return 0 }
-        if s >= tabCenters[4] { return 4 }
-        for i in 0..<4 where s <= tabCenters[i + 1] {
-            return CGFloat(i) + (s - tabCenters[i]) / (tabCenters[i + 1] - tabCenters[i])
-        }
-        return 4
-    }
-
-    /// Center Add — always visible, opens the new-transaction sheet from any tab.
+    /// Center Add — only present on the Ledger tab. Its insertion/removal rides the
+    /// tab-switch `.bouncy` animation, so it springs in / collapses out silkily.
     private var addButton: some View {
         Button {
             requestAddTxn = true
@@ -154,7 +136,7 @@ private struct RootView: View {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: tabSize, height: tabSize)
+                .frame(width: 50, height: 50)
                 .background(RoundedRectangle(cornerRadius: UI.radius)
                     .fill(accentGradient(accentHex)).padding(3))
         }
@@ -167,7 +149,7 @@ private struct RootView: View {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(tab == i ? .white : Color.appInk.opacity(0.55))
-                .frame(width: tabSize, height: tabSize)
+                .frame(width: 50, height: 50)
                 .background {
                     if tab == i {
                         RoundedRectangle(cornerRadius: UI.radius)

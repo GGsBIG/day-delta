@@ -9,6 +9,7 @@ struct LedgerView: View {
     private var accounts: [Account] { app.accounts }
     @State private var editingTxn: Txn?
     @State private var managing = false
+    @State private var showingDays = false
     @State private var monthAnchor = Date()
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
 
@@ -23,6 +24,7 @@ struct LedgerView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader("Ledger") {
+                Button { showingDays = true } label: { Image(systemName: "calendar") }
                 Button("Edit") { managing = true }
             }
             ledgerList
@@ -43,6 +45,13 @@ struct LedgerView: View {
         }
         .sheet(isPresented: $managing) {
             ManageView(categories: $app.categories, accounts: $app.accounts)
+        }
+        .fullScreenCover(isPresented: $showingDays) {
+            ZStack {
+                GrainientBackground().ignoresSafeArea()
+                ContentView(onClose: { showingDays = false })
+            }
+            .preferredColorScheme(.dark).tint(.white)
         }
     }
 

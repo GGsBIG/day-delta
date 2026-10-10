@@ -2,6 +2,9 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
+    /// When presented as a sheet/cover (e.g. from the Ledger header), this shows a
+    /// dismiss button in the header. nil when it's a standalone page.
+    var onClose: (() -> Void)? = nil
     @State private var events: [Event] = EventStore.load()
     @State private var viewing: Event?
     @State private var showingAdd = false
@@ -28,6 +31,9 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             PageHeader("DayDelta") {
+                if let onClose {
+                    Button { onClose() } label: { Image(systemName: "xmark") }
+                }
                 if !autoSort {
                     Button(editMode.isEditing ? "Done" : "Edit") {
                         withAnimation { editMode = editMode.isEditing ? .inactive : .active }

@@ -59,9 +59,10 @@ struct InvestmentsView: View {
                                     Button(role: .destructive) {
                                         app.deleteHoldings(ids: g.lots.map(\.id))
                                     } label: { Label("Delete", systemImage: "trash") }
+                                        .tint(Color.appPanel)
                                     Button { sellingGroup = g } label: {
                                         Label("Sell", systemImage: "arrow.up.right.circle")
-                                    }.tint(.green)
+                                    }.tint(Color.appPanel)
                                 }
                         }
                         .listRowBackground(Color.white.opacity(0.06))
