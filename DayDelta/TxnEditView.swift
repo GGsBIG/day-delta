@@ -24,6 +24,8 @@ struct TxnEditView: View {
     @State private var date: Date
     @State private var note: String
     @State private var eventID: UUID?
+    /// Bumped on "save & add next" to fire a confirming haptic (the sheet stays open).
+    @State private var savedTick = 0
 
     init(txn: Txn?, categories: [Category], accounts: [Account] = [],
          defaultDate: Date? = nil,
@@ -115,8 +117,14 @@ struct TxnEditView: View {
             .navigationTitle(txn == nil ? "New" : "Edit")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                if txn == nil {   // adding: offer "save & add next" to batch entries
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button { saveAndNext() } label: { Image(systemName: "plus.circle") }
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) { Button("Save") { save() } }
             }
+            .sensoryFeedback(.success, trigger: savedTick)
             .onChange(of: mode) { _, _ in
                 if let cid = categoryID, !typeCategories.contains(where: { $0.id == cid }) {
                     categoryID = typeCategories.first?.id
@@ -160,19 +168,20 @@ struct TxnEditView: View {
         .contentShape(Rectangle())
     }
 
-    private func save() {
-        guard let amount = Decimal(string: amountText), amount > 0 else { return }
+    /// Validate + persist the current entry (txn or transfer). Returns false on
+    /// invalid input so callers know whether to dismiss / reset.
+    private func commit() -> Bool {
+        guard let amount = Decimal(string: amountText), amount > 0 else { return false }
         let trimmedNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let noteOrNil = trimmedNote.isEmpty ? nil : trimmedNote
 
         if isTransfer {
-            guard let fromID, let toID, fromID != toID else { return }
+            guard let fromID, let toID, fromID != toID else { return false }
             onTransfer?(amount, fromID, toID, date, noteOrNil)
-            dismiss()
-            return
+            return true
         }
 
-        guard let categoryID else { return }
+        guard let categoryID else { return false }
         var t = txn ?? Txn(type: type, amount: amount, categoryID: categoryID, date: date)
         t.type = type
         t.amount = amount
@@ -182,6 +191,17 @@ struct TxnEditView: View {
         t.eventID = eventID
         t.accountID = accountID
         onSave(t)
-        dismiss()
+        return true
+    }
+
+    private func save() { if commit() { dismiss() } }
+
+    /// Save this entry and clear the amount/note for the next one — keeps category,
+    /// account, date and mode so logging several in a row is one tap each.
+    private func saveAndNext() {
+        guard commit() else { return }
+        amountText = ""
+        note = ""
+        savedTick += 1
     }
 }
