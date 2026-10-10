@@ -11,7 +11,7 @@ struct DayDeltaApp: App {
     }
 }
 
-/// Custom tab container. Tabs: Accounts(0) / Ledger(1) / Stats(2) / Days(3) / Invest(4).
+/// Custom tab container. Tabs: Accounts(0) / Ledger(1) / Stats(2) / Invest(3) / Days(4).
 /// A custom offset pager over one shared, fixed grainient background: transparent
 /// pages follow the finger (content swipe + tab-bar drag), snapping on release.
 private struct RootView: View {
@@ -82,8 +82,8 @@ private struct RootView: View {
         case 0:  AccountsView()
         case 1:  LedgerView(requestAddTxn: $requestAddTxn)
         case 2:  StatsView()
-        case 3:  ContentView()
-        default: InvestmentsView()
+        case 3:  InvestmentsView()
+        default: ContentView()
         }
     }
 
@@ -104,8 +104,8 @@ private struct RootView: View {
                     .transition(.scale.combined(with: .opacity))
             }
             tabButton(2, "chart.pie")
-            tabButton(3, "calendar")
-            tabButton(4, "chart.line.uptrend.xyaxis")
+            tabButton(3, "chart.line.uptrend.xyaxis")
+            tabButton(4, "calendar")
         }
         .padding(6)
         .background(GeometryReader { g in

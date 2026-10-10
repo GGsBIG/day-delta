@@ -70,6 +70,7 @@ struct CategoryManagerView: View {
                             .buttonStyle(.plain)
                     }
                     .onDelete { offsets in delete(type: type, offsets: offsets) }
+                    .onMove { from, to in move(type: type, from: from, to: to) }
                     Button {
                         editing = Category(name: "", type: type, icon: nil,
                                            colorHex: colors[0])
@@ -89,6 +90,7 @@ struct CategoryManagerView: View {
         .scrollContentBackground(.hidden)
         .background(GrainientBackground())
         .navigationTitle("Categories")
+        .toolbar { ToolbarItem(placement: .topBarTrailing) { EditButton() } }
         .sheet(item: $editing) { c in
             editSheet(c)
         }
@@ -125,12 +127,26 @@ struct CategoryManagerView: View {
         }
     }
 
-    /// Delete exactly the swiped rows. (Must match the rows SwiftUI removed, or the
-    /// List data/animation desync and the app crashes — so no built-in filtering.)
+    /// The visible rows for a type, in display order (same predicate as the ForEach,
+    /// so swipe/drag offsets line up exactly).
+    private func visible(_ type: TxnType) -> [Category] {
+        categories.filter { $0.type == type && !$0.isTransfer }
+    }
+
+    /// Delete exactly the swiped rows. (Offsets must match the ForEach's rows or the
+    /// List data/animation desync and the app crashes.)
     private func delete(type: TxnType, offsets: IndexSet) {
-        let inType = categories.filter { $0.type == type }
-        let ids = offsets.map { inType[$0].id }
+        let ids = offsets.map { visible(type)[$0].id }
         categories.removeAll { ids.contains($0.id) }
+    }
+
+    /// Reorder within a type's section: reshuffle that slice and write it back into
+    /// `categories` in place, leaving the other type's rows untouched.
+    private func move(type: TxnType, from: IndexSet, to: Int) {
+        var slice = visible(type)
+        slice.move(fromOffsets: from, toOffset: to)
+        var next = slice.makeIterator()
+        categories = categories.map { ($0.type == type && !$0.isTransfer) ? next.next()! : $0 }
     }
 }
 

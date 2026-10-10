@@ -10,6 +10,12 @@ let categoryColors = [
     "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9", "#4F9DFF", "#3B82F6",
     "#6366F1", "#8B5CF6", "#A855F7", "#D946EF", "#EC4899", "#F43F5E",
     "#78716C", "#9CA3AF",
+    // +30: deep/jewel tones, pastels, and warm neutrals for more variety.
+    "#991B1B", "#C2410C", "#B45309", "#A16207", "#4D7C0F", "#15803D",
+    "#047857", "#0F766E", "#0E7490", "#0369A1", "#1D4ED8", "#1E40AF",
+    "#4338CA", "#6D28D9", "#7E22CE", "#A21CAF", "#BE185D", "#BE123C",
+    "#FCA5A5", "#FDBA74", "#FCD34D", "#BEF264", "#86EFAC", "#5EEAD4",
+    "#67E8F9", "#93C5FD", "#C4B5FD", "#F0ABFC", "#F9A8D4", "#D6D3D1",
 ]
 
 /// Shared animation feel so every transition and number roll moves uniformly
