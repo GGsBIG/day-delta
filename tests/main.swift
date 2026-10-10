@@ -249,6 +249,13 @@ assert(reduceLots([sellLotA, sellLotB], by: 15).isEmpty)
 let partial = reduceLots([sellLotA, sellLotB], by: 4)
 assert(partial.count == 2 && partial[0].quantity == 6 && partial[1].quantity == 5)
 
+// chartYDomain: pads a real range, and never returns a zero-height range (flat /
+// empty data) — a zero range makes Swift Charts emit "Invalid frame dimension".
+let dom = chartYDomain([100, 200])
+assert(dom.lowerBound < 100 && dom.upperBound > 200)       // padded outward
+assert(chartYDomain([50, 50]) == 49.0...51.0)              // flat -> ±1, not zero
+assert(chartYDomain([]).lowerBound < chartYDomain([]).upperBound)  // empty -> non-degenerate
+
 // changePct
 assert(abs(changePct(120, 100) - 20) < 0.001)
 assert(changePct(120, 0) == 0)

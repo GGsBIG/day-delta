@@ -496,6 +496,7 @@ private struct BalanceChart: View {
                     .foregroundStyle(tint).symbolSize(70)
             }
         }
+        .chartYScale(domain: chartYDomain(series.map(\.doubleValue)))
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
     }

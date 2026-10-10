@@ -113,6 +113,7 @@ struct InvestmentChartCard: View {
             }
         }
         .chartXSelection(value: $selected)
+        .chartYScale(domain: chartYDomain(thisSeries.map(\.doubleValue)))
         .chartYAxis {
             AxisMarks(position: .trailing) {
                 AxisGridLine().foregroundStyle(.white.opacity(0.08))
