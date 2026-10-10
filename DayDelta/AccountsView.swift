@@ -118,7 +118,7 @@ struct AccountsView: View {
             Spacer()
             Button { showingColors = true } label: {
                 Image(systemName: "paintpalette.fill")
-                    .font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.text)
+                    .font(.system(size: 20, weight: .semibold)).foregroundStyle(Palette.text)
                     .frame(width: 42, height: 42)
                     .liquidGlass(Circle())
             }
@@ -134,7 +134,7 @@ struct AccountsView: View {
                 }
             } label: {
                 Image(systemName: "square.grid.2x2")
-                    .font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.text)
+                    .font(.system(size: 20, weight: .semibold)).foregroundStyle(Palette.text)
                     .frame(width: 42, height: 42)
                     .liquidGlass(Circle())
             }
