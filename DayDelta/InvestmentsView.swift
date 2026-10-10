@@ -70,7 +70,7 @@ struct InvestmentsView: View {
                 }
                 .listStyle(.plain)   // full-width rows aligned to the 16pt page insets
                 .scrollContentBackground(.hidden)
-                .contentMargins(.top, 0, for: .scrollContent)   // pull Holdings up
+                .contentMargins(.top, 12, for: .scrollContent)   // small gap under the chart, no overlap
                 .refreshable { await refreshQuotes() }
             }
         }
