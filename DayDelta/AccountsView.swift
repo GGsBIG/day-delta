@@ -397,15 +397,21 @@ struct GrainientBackground: View {
 
     var body: some View {
         let p = palette(Color(hex: bgHex))
-        // One static frame under Reduce Motion. Otherwise drift at 30fps: the blobs
-        // move slowly (≤0.22 rad/s) so 30 is indistinguishable from 120Hz, but costs
-        // ~¼ the per-frame gradient+grain rendering. TimelineView auto-pauses this
-        // off-screen and in the background, so idle pages don't burn the GPU.
-        if reduceMotion {
-            frame(p, t: 0)
-        } else {
-            TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
-                frame(p, t: timeline.date.timeIntervalSinceReferenceDate)
+        // Gate on a real size: a zero/degenerate frame (e.g. a view mid-presentation)
+        // must not spin a display link or hand CoreAnimation a bad rect — that's the
+        // "cannot add handler to 0 from 0" + "Invalid frame dimension" console churn.
+        GeometryReader { geo in
+            let ok = geo.size.width > 0 && geo.size.height > 0
+            if reduceMotion || !ok {
+                // One static frame under Reduce Motion (or before a valid size exists).
+                frame(p, t: 0)
+            } else {
+                // Otherwise drift at 30fps: the blobs move slowly (≤0.22 rad/s) so 30 is
+                // indistinguishable from 120Hz at ~¼ the per-frame cost. TimelineView
+                // auto-pauses off-screen and backgrounded, so idle pages don't burn GPU.
+                TimelineView(.periodic(from: .now, by: 1.0 / 30.0)) { timeline in
+                    frame(p, t: timeline.date.timeIntervalSinceReferenceDate)
+                }
             }
         }
     }

@@ -45,7 +45,7 @@ struct InvestmentChartCard: View {
                 }
             }
             .frame(height: 190)
-            .clipped()   // keep the area gradient inside the chart, not bleeding into Holdings
+            .clipped()   // clip the line/marks to the chart's frame, not into Holdings
         }
         .padding(.vertical, 8)
         .task(id: "\(signature)|\(displayUSD)|\(fx)") { await reload() }
