@@ -74,8 +74,6 @@ private struct RootView: View {
         }
     }
 
-    private func clampPage(_ x: CGFloat) -> CGFloat { min(4, max(0, x)) }
-
     @ViewBuilder
     private func page(_ i: Int) -> some View {
         switch i {
@@ -93,17 +91,23 @@ private struct RootView: View {
         withAnimation(.bouncy(duration: 0.45)) { progress = CGFloat(i) }
     }
 
-    /// Glass pill: frosted capsule with circular icon buttons. The active tab's
-    /// highlight glides between slots via matchedGeometry, so switching is silky.
+    /// Button edge for every slot. Six slots (5 tabs + center Add) must fit the
+    /// floating bar on the narrowest iPhone, so this is a touch under the old 50.
+    private let tabSize: CGFloat = 46
+
+    /// Slot centres (in slot-width units, 6 slots) for the five tab pages. Slot 3 is
+    /// the Add button, so Invest/Days live at slots 4/5 — the scrub bridges the gap.
+    private let tabCenters: [CGFloat] = [0.5, 1.5, 2.5, 4.5, 5.5]
+
+    /// Glass pill: frosted capsule with circular icon buttons. The Add button sits
+    /// permanently in the middle. The active tab's highlight glides between slots via
+    /// matchedGeometry, so switching is silky.
     private var tabBar: some View {
         HStack(spacing: 6) {
             tabButton(0, "creditcard")
             tabButton(1, "calendar.day.timeline.left")
-            if tab == 1 {
-                addButton
-                    .transition(.scale.combined(with: .opacity))
-            }
             tabButton(2, "chart.pie")
+            addButton
             tabButton(3, "chart.line.uptrend.xyaxis")
             tabButton(4, "calendar")
         }
@@ -113,25 +117,36 @@ private struct RootView: View {
                 .onAppear { barWidth = g.size.width }
                 .onChange(of: g.size.width) { _, w in barWidth = w }
         })
-        // Press-drag across the bar to scrub pages in real time: the finger's x
-        // maps straight to the fractional page, so pages follow the finger.
-        // simultaneousGesture so it works even over the buttons; snaps on release.
+        // Press-drag across the bar to scrub pages in real time: the finger's x maps
+        // to the fractional page (skipping the centre Add slot), so pages follow the
+        // finger. simultaneousGesture so it works even over the buttons; snaps on release.
         .simultaneousGesture(DragGesture(minimumDistance: 8)
             .onChanged { v in
                 guard barWidth > 0 else { return }
-                progress = clampPage(v.location.x / (barWidth / 5) - 0.5)
+                progress = pageFor(x: v.location.x, width: barWidth)
             }
             .onEnded { _ in
                 withAnimation(Motion.quick) { progress = CGFloat(tab) }
             })
         .panel()
         .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
-        .padding(.horizontal, 32)
+        .padding(.horizontal, 16)
         .padding(.bottom, 4)
     }
 
-    /// Center Add — only present on the Ledger tab. Its insertion/removal rides the
-    /// tab-switch `.bouncy` animation, so it springs in / collapses out silkily.
+    /// Finger x → fractional page, interpolating between the tab slot centres so the
+    /// scrub stays continuous across the Add button's gap in the middle.
+    private func pageFor(x: CGFloat, width: CGFloat) -> CGFloat {
+        let s = x / (width / 6)   // position in slot-width units
+        if s <= tabCenters[0] { return 0 }
+        if s >= tabCenters[4] { return 4 }
+        for i in 0..<4 where s <= tabCenters[i + 1] {
+            return CGFloat(i) + (s - tabCenters[i]) / (tabCenters[i + 1] - tabCenters[i])
+        }
+        return 4
+    }
+
+    /// Center Add — always visible, opens the new-transaction sheet from any tab.
     private var addButton: some View {
         Button {
             requestAddTxn = true
@@ -139,7 +154,7 @@ private struct RootView: View {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 50, height: 50)
+                .frame(width: tabSize, height: tabSize)
                 .background(RoundedRectangle(cornerRadius: UI.radius)
                     .fill(accentGradient(accentHex)).padding(3))
         }
@@ -152,7 +167,7 @@ private struct RootView: View {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(tab == i ? .white : Color.appInk.opacity(0.55))
-                .frame(width: 50, height: 50)
+                .frame(width: tabSize, height: tabSize)
                 .background {
                     if tab == i {
                         RoundedRectangle(cornerRadius: UI.radius)

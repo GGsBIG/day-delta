@@ -6,6 +6,7 @@ struct InvestmentsView: View {
     @State private var app = AppData.shared
     @State private var editing: Holding?
     @State private var viewingGroup: GroupKey?
+    @State private var sellingGroup: HoldingGroup?
     @State private var filter: String? = nil      // nil = All; else a kind name
     @State private var refreshing = false
     @State private var fx: Decimal = 32            // live USD→TWD rate (fallback)
@@ -58,6 +59,9 @@ struct InvestmentsView: View {
                                     Button(role: .destructive) {
                                         app.deleteHoldings(ids: g.lots.map(\.id))
                                     } label: { Label("Delete", systemImage: "trash") }
+                                    Button { sellingGroup = g } label: {
+                                        Label("Sell", systemImage: "arrow.up.right.circle")
+                                    }.tint(.green)
                                 }
                         }
                         .listRowBackground(Color.white.opacity(0.06))
@@ -78,6 +82,7 @@ struct InvestmentsView: View {
         .sheet(item: $viewingGroup) { key in
             HoldingGroupSheet(groupKey: key.id)
         }
+        .sheet(item: $sellingGroup) { SellSheet(group: $0) }
         .task { await refreshQuotes() }
     }
 
@@ -160,7 +165,6 @@ private struct HoldingGroupSheet: View {
     @State private var app = AppData.shared
     @State private var editing: Holding?
     @State private var displayName = ""
-    @State private var selling = false
     @Environment(\.dismiss) private var dismiss
 
     private var lots: [Holding] { groupHoldings(app.holdings).first { $0.key == groupKey }?.lots ?? [] }
@@ -189,13 +193,6 @@ private struct HoldingGroupSheet: View {
                     Button { editing = addLot() } label: { Label("Add purchase", systemImage: "plus") }
                         .listRowBackground(Color.white.opacity(0.06))
                 }
-                Section {
-                    Button { selling = true } label: {
-                        Label("Sell", systemImage: "arrow.up.right.circle")
-                    }
-                    .disabled(group.shares <= 0)
-                    .listRowBackground(Color.white.opacity(0.06))
-                }
             }
             .font(.system(.body, design: .rounded))
             .listStyle(.insetGrouped)
@@ -207,7 +204,6 @@ private struct HoldingGroupSheet: View {
             .sheet(item: $editing) { h in
                 HoldingEditSheet(holding: h) { saved in app.saveHolding(saved); editing = nil }
             }
-            .sheet(isPresented: $selling) { SellSheet(group: group) }
         }
         .preferredColorScheme(.dark).tint(.white)
         .onChange(of: lots.count) { _, c in if c == 0 { dismiss() } }
