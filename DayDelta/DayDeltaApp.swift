@@ -114,6 +114,11 @@ private struct RootView: View {
             .padding(.horizontal, 6)
             .padding(.top, 44)
             .padding(.bottom, 6)
+            // The amount uses the custom Keypad; only the optional Note needs the
+            // system keyboard. Ignore the keyboard's safe area so avoidance can't
+            // crush the fixed-height VStack into negative frames (the "Invalid frame
+            // dimension" flood). The keyboard simply overlaps the lower Keypad.
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .transition(.scale(scale: 0.92).combined(with: .opacity))
         }
     }
