@@ -65,7 +65,7 @@ struct InvestmentsView: View {
                                     }.tint(Color.appPanel)
                                 }
                         }
-                        .listRowBackground(Color.white.opacity(0.06))
+                        .listRowBackground(Color.clear)
                     }
                 }
                 .listStyle(.plain)   // full-width rows aligned to the 16pt page insets

@@ -96,12 +96,6 @@ struct InvestmentChartCard: View {
     private var chart: some View {
         Chart {
             ForEach(thisSeries) { p in
-                AreaMark(x: .value("Date", p.date), y: .value("Value", p.doubleValue))
-                    .interpolationMethod(.monotone)
-                    .foregroundStyle(LinearGradient(colors: [.white.opacity(0.18), .white.opacity(0.01)],
-                                                    startPoint: .top, endPoint: .bottom))
-            }
-            ForEach(thisSeries) { p in
                 LineMark(x: .value("Date", p.date), y: .value("Value", p.doubleValue))
                     .interpolationMethod(.monotone)
                     .foregroundStyle(.white)
