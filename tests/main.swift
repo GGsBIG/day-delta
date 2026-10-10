@@ -234,6 +234,21 @@ assert(pser[0].value == 0)        // day1: not yet bought
 assert(pser[1].value == 1100)     // day2: 10 × 110
 assert(pser[2].value == 1200)     // day3: 10 × 120
 
+// reduceLots: sell 12 of 15 (10 bought d1 + 5 bought d2) FIFO → first lot gone,
+// second reduced to 3; buy cost basis preserved on the survivor.
+let sellLotA = Holding(kind: "US Stocks", name: "T", symbol: "T", quantity: 10, costPerUnit: 100, currentPrice: 120, date: day(2026, 6, 1))
+let sellLotB = Holding(kind: "US Stocks", name: "T", symbol: "T", quantity: 5, costPerUnit: 110, currentPrice: 120, date: day(2026, 6, 2))
+let afterSell = reduceLots([sellLotA, sellLotB], by: 12)
+assert(afterSell.count == 1)
+assert(afterSell[0].id == sellLotB.id && afterSell[0].quantity == 3)
+assert(afterSell[0].costPerUnit == 110)
+assert(afterSell.reduce(Decimal(0)) { $0 + $1.quantity } == 3)
+// selling everything leaves no lots
+assert(reduceLots([sellLotA, sellLotB], by: 15).isEmpty)
+// selling less than the first lot only shrinks it, keeps the second intact
+let partial = reduceLots([sellLotA, sellLotB], by: 4)
+assert(partial.count == 2 && partial[0].quantity == 6 && partial[1].quantity == 5)
+
 // changePct
 assert(abs(changePct(120, 100) - 20) < 0.001)
 assert(changePct(120, 0) == 0)

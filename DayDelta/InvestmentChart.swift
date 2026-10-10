@@ -68,7 +68,7 @@ struct InvestmentChartCard: View {
             Text(selected == nil ? "Portfolio value" : "At point")
                 .font(.system(.title3, design: .rounded)).foregroundStyle(.white.opacity(0.7))
             Text(formatMoney(readout, code: currencyCode))
-                .font(.system(size: 52, weight: .thin, design: .rounded)).tracking(0.5)
+                .font(.system(size: 60, weight: .thin, design: .rounded)).tracking(0.5)
                 .foregroundStyle(.white).minimumScaleFactor(0.4).lineLimit(1)
                 .contentTransition(.numericText(value: (readout as NSDecimalNumber).doubleValue))
                 .animation(Motion.quick, value: readout)

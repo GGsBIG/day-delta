@@ -160,6 +160,7 @@ private struct HoldingGroupSheet: View {
     @State private var app = AppData.shared
     @State private var editing: Holding?
     @State private var displayName = ""
+    @State private var selling = false
     @Environment(\.dismiss) private var dismiss
 
     private var lots: [Holding] { groupHoldings(app.holdings).first { $0.key == groupKey }?.lots ?? [] }
@@ -188,6 +189,13 @@ private struct HoldingGroupSheet: View {
                     Button { editing = addLot() } label: { Label("Add purchase", systemImage: "plus") }
                         .listRowBackground(Color.white.opacity(0.06))
                 }
+                Section {
+                    Button { selling = true } label: {
+                        Label("Sell", systemImage: "arrow.up.right.circle")
+                    }
+                    .disabled(group.shares <= 0)
+                    .listRowBackground(Color.white.opacity(0.06))
+                }
             }
             .font(.system(.body, design: .rounded))
             .listStyle(.insetGrouped)
@@ -199,6 +207,7 @@ private struct HoldingGroupSheet: View {
             .sheet(item: $editing) { h in
                 HoldingEditSheet(holding: h) { saved in app.saveHolding(saved); editing = nil }
             }
+            .sheet(isPresented: $selling) { SellSheet(group: group) }
         }
         .preferredColorScheme(.dark).tint(.white)
         .onChange(of: lots.count) { _, c in if c == 0 { dismiss() } }
@@ -244,9 +253,9 @@ private struct HoldingGroupSheet: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(formatMoney(lot.marketValue)).foregroundStyle(.white)
-                Text("\(lot.gain >= 0 ? "+" : "")\(formatMoney(lot.gain))")
-                    .font(.caption).foregroundStyle(lot.gain >= 0 ? .green : .red)
+                MoneyText(lot.marketValue).foregroundStyle(.white)
+                MoneyText(lot.gain, base: 12, prefix: lot.gain >= 0 ? "+" : "")
+                    .foregroundStyle(lot.gain >= 0 ? .green : .red)
             }
         }
     }
@@ -254,6 +263,82 @@ private struct HoldingGroupSheet: View {
     private func addLot() -> Holding {
         Holding(kind: group.kind, name: group.name, symbol: group.symbol,
                 quantity: 0, costPerUnit: 0, currentPrice: group.currentPrice)
+    }
+}
+
+/// Sell (part of) a holding group: enter quantity + proceeds and pick the account
+/// the cash goes into. Lots shrink FIFO; proceeds post as investment income.
+private struct SellSheet: View {
+    let group: HoldingGroup
+    @State private var app = AppData.shared
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var qty: String
+    @State private var proceeds: String
+    @State private var account: UUID?
+    @State private var date = Date()
+
+    init(group: HoldingGroup) {
+        self.group = group
+        _qty = State(initialValue: "\(group.shares)")
+        _proceeds = State(initialValue: "\(group.marketValue)")
+        // Default to a "Cash" account if there is one, else the first account.
+        let cash = AppData.shared.accounts.first { $0.name.lowercased().contains("cash") }
+        _account = State(initialValue: (cash ?? AppData.shared.accounts.first)?.id)
+    }
+
+    private var sellQty: Decimal { min(group.shares, max(0, Decimal(string: qty) ?? 0)) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Instrument") {
+                    LabeledContent("Holding", value: group.name.isEmpty ? group.kind : group.name)
+                    LabeledContent("Held", value: "\(decimal(group.shares)) \(unitLabel(group.kind))")
+                }
+                Section("Sell") {
+                    field("Quantity", $qty)
+                    field("Proceeds amount", $proceeds)
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                }
+                Section {
+                    Picker("Deposit to", selection: $account) {
+                        Text("Unassigned").tag(UUID?.none)
+                        ForEach(app.accounts) { a in Text(a.name).tag(UUID?.some(a.id)) }
+                    }
+                } footer: {
+                    Text("The proceeds are added to this account. Selling reduces your holding (fully-sold lots disappear) but keeps past purchases in the Ledger.")
+                }
+            }
+            .font(.system(.body, design: .rounded))
+            .scrollContentBackground(.hidden)
+            .background(GrainientBackground().ignoresSafeArea())
+            .navigationTitle("Sell")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Sell") {
+                        app.sell(groupKey: group.key, quantity: sellQty,
+                                 proceeds: Decimal(string: proceeds) ?? 0,
+                                 toAccount: account, date: date,
+                                 note: group.name.isEmpty ? group.kind : group.name)
+                        dismiss()
+                    }
+                    .disabled(sellQty <= 0)
+                }
+            }
+        }
+        .preferredColorScheme(.dark).tint(.white)
+    }
+
+    private func field(_ title: String, _ text: Binding<String>) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            TextField("0", text: text)
+                .keyboardType(.decimalPad).multilineTextAlignment(.trailing).frame(maxWidth: 140)
+        }
     }
 }
 

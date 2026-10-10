@@ -107,6 +107,24 @@ import WidgetKit
         else { holdings.append(holding) }
     }
 
+    /// Sell `quantity` from a holding group: proceeds land in `toAccount` as an
+    /// investment income (excluded from real income / "saved", mirroring buys), and
+    /// the group's lots shrink FIFO — fully-sold lots vanish but their buy txns stay
+    /// as history. A sold-out stock disappears from Holdings.
+    func sell(groupKey: String, quantity: Decimal, proceeds: Decimal,
+              toAccount: UUID?, date: Date, note: String?) {
+        let catID = investmentCategoryID()
+        txns.append(Txn(type: .income, amount: proceeds, categoryID: catID,
+                        date: date, note: note, accountID: toAccount))
+
+        let groupLots = groupHoldings(holdings).first { $0.key == groupKey }?.lots ?? []
+        let kept = Dictionary(uniqueKeysWithValues: reduceLots(groupLots, by: quantity).map { ($0.id, $0) })
+        let groupIDs = Set(groupLots.map(\.id))
+        holdings = holdings.compactMap { h in
+            groupIDs.contains(h.id) ? kept[h.id] : h   // drop fully-sold, keep order
+        }
+    }
+
     func deleteHoldings(ids: [UUID]) {
         let txnIDs = Set(holdings.filter { ids.contains($0.id) }.compactMap(\.txnID))
         if !txnIDs.isEmpty { txns.removeAll { txnIDs.contains($0.id) } }

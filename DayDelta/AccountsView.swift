@@ -64,7 +64,7 @@ struct AccountsView: View {
         periodScoped.filter { $0.type == .expense && !investmentIDs.contains($0.categoryID) && !transferIDs.contains($0.categoryID) }.reduce(0) { $0 + $1.amount }
     }
     private var incomeTotal: Decimal {
-        periodScoped.filter { $0.type == .income && !transferIDs.contains($0.categoryID) }.reduce(0) { $0 + $1.amount }
+        periodScoped.filter { $0.type == .income && !investmentIDs.contains($0.categoryID) && !transferIDs.contains($0.categoryID) }.reduce(0) { $0 + $1.amount }
     }
 
     /// Saved = income − real expenses. Money moved into investments counts as

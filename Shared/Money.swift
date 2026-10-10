@@ -161,6 +161,24 @@ extension Holding {
     var gain: Decimal { marketValue - cost }
 }
 
+/// Reduce a group's lots by `quantity` sold, FIFO (earliest purchase first).
+/// Lots fully sold are dropped; a partially sold lot keeps its cost basis. Returns
+/// the surviving lots in date order. Pure — the buy txns are left untouched.
+func reduceLots(_ lots: [Holding], by quantity: Decimal) -> [Holding] {
+    var remaining = quantity
+    var kept: [Holding] = []
+    for lot in lots.sorted(by: { $0.date < $1.date }) {
+        if remaining <= 0 { kept.append(lot); continue }
+        if lot.quantity <= remaining {
+            remaining -= lot.quantity          // whole lot sold → dropped
+        } else {
+            var l = lot; l.quantity -= remaining; remaining = 0
+            kept.append(l)
+        }
+    }
+    return kept
+}
+
 /// Built-in instrument kinds offered in the picker: (name, color, SF Symbol).
 let investmentKinds: [(name: String, colorHex: String, icon: String)] = [
     ("US Stocks", "#4F9DFF", "chart.line.uptrend.xyaxis"),
