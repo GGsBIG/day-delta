@@ -29,7 +29,6 @@ private struct RootView: View {
     @AppStorage("panelHex") private var panelHex = "#FFFFFF26"
     @Environment(\.scenePhase) private var scenePhase
     @State private var lock = LockManager.shared
-    @State private var app = AppData.shared
 
     /// Nearest page — drives the highlight, Add button, and haptics.
     private var tab: Int { Int(progress.rounded()) }
@@ -37,17 +36,12 @@ private struct RootView: View {
     var body: some View {
         let _ = (bgHex, panelHex)   // subscribe so ink + panel color update live
         ZStack {
-            ZStack {
-                // One fixed animated grainient behind everything. Pages are transparent
-                // and slide over it, so the background never seams or flashes black.
-                GrainientBackground().ignoresSafeArea()
-                pager
-            }
-            .safeAreaInset(edge: .bottom) { tabBar }
-
-            // The Add editor springs in over a dimmed-blur backdrop (covers the bar too).
-            if requestAddTxn { addTxnOverlay }
+            // One fixed animated grainient behind everything. Pages are transparent
+            // and slide over it, so the background never seams or flashes black.
+            GrainientBackground().ignoresSafeArea()
+            pager
         }
+        .safeAreaInset(edge: .bottom) { tabBar }
         .sensoryFeedback(.selection, trigger: tab)
         .fontDesign(.rounded)
         .fontWeight(.thin)
@@ -84,46 +78,11 @@ private struct RootView: View {
     private func page(_ i: Int) -> some View {
         switch i {
         case 0:  AccountsView()
-        case 1:  LedgerView()
+        case 1:  LedgerView(requestAddTxn: $requestAddTxn)
         case 2:  StatsView()
         default: InvestmentsView()
         }
     }
-
-    /// The new-transaction editor as a custom pop: a dimmed-blur backdrop plus the
-    /// editor card scaling 0.92→1 with a fade (Motion.pop spring). Tapping the
-    /// backdrop, Cancel, or Save closes it; "save & add next" keeps it open.
-    private var addTxnOverlay: some View {
-        ZStack {
-            Rectangle().fill(.ultraThinMaterial)
-                .overlay(Color.black.opacity(0.25))
-                .ignoresSafeArea()
-                .onTapGesture { close() }
-                .transition(.opacity)
-
-            TxnEditView(txn: nil, categories: app.categories, accounts: app.accounts,
-                        defaultDate: Date(),
-                        onTransfer: { amount, from, to, date, note in
-                            app.transfer(amount: amount, from: from, to: to, date: date, note: note)
-                        },
-                        onFinish: { close() }) { saved in
-                app.addTxn(saved)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 28))
-            .shadow(color: .black.opacity(0.25), radius: 20, y: 8)
-            .padding(.horizontal, 6)
-            .padding(.top, 44)
-            .padding(.bottom, 6)
-            // The amount uses the custom Keypad; only the optional Note needs the
-            // system keyboard. Ignore the keyboard's safe area so avoidance can't
-            // crush the fixed-height VStack into negative frames (the "Invalid frame
-            // dimension" flood). The keyboard simply overlaps the lower Keypad.
-            .ignoresSafeArea(.keyboard, edges: .bottom)
-            .transition(.scale(scale: 0.92).combined(with: .opacity))
-        }
-    }
-
-    private func close() { withAnimation(Motion.pop) { requestAddTxn = false } }
 
     /// Animate to a page (from a tab tap).
     private func go(to i: Int) {
@@ -172,7 +131,7 @@ private struct RootView: View {
     /// tab-switch `.bouncy` animation, so it springs in / collapses out silkily.
     private var addButton: some View {
         Button {
-            withAnimation(Motion.pop) { requestAddTxn = true }
+            requestAddTxn = true
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 20, weight: .semibold))
